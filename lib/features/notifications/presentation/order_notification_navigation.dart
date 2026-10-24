@@ -131,6 +131,19 @@ Future<void> navigateToOrderFromNotification(
   }
 
   if (s == 1) {
+    if (order.isVerified) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: order.resolvedItemSubtotal,
+            deliveryFee: order.deliveryFee ?? 0,
+            autoShowPaymentSheet: true,
+          ),
+        ),
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(

@@ -5,6 +5,7 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/delete_account_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
+import 'package:mytogetherapp/features/auth/presentation/screens/payment_methods_page.dart';
 
 class AccountSettingsPage extends StatelessWidget {
   const AccountSettingsPage({super.key});
@@ -45,6 +46,16 @@ class AccountSettingsPage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EditProfilePage()),
+            ),
+          ),
+          _buildOptionTile(
+            context,
+            icon: PhosphorIcons.creditCard,
+            title: context.tr('profile.payment_methods'),
+            subtitle: context.tr('profile.payment_methods_sub'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PaymentMethodsPage()),
             ),
           ),
           const SizedBox(height: 8),

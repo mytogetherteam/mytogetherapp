@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -137,6 +138,17 @@ class ActiveOrderItem {
   String? backendStatus;
   String? lastOrderNo;
   String? riderVehicleNumber;
+  String? paymentChannel;
+  bool isVerified;
+  String? preferredOmiseMethod;
+  DateTime? omiseExpiresAt;
+  String? omiseQrImageUrl;
+  Uint8List? omiseQrBytes;
+  Uint8List? omiseQrLogoBytes;
+  String? omiseChargeId;
+  String? omiseAuthorizeUri;
+  bool get isOmisePayment =>
+      (paymentChannel ?? '').toUpperCase() == 'OMISE' || isVerified;
 
   bool get isPickupFulfillment {
     final type = (orderType ?? '').toUpperCase();
@@ -307,6 +319,7 @@ class ActiveOrderItem {
     this.backendStatus,
     this.lastOrderNo,
     this.riderVehicleNumber,
+    this.paymentChannel,
     this.shopId,
     this.shopName,
     this.shopNameEn,
@@ -321,6 +334,14 @@ class ActiveOrderItem {
     this.paymentAccountName,
     this.taxEnable,
     this.proofPhotoUrl,
+    this.isVerified = false,
+    this.preferredOmiseMethod = 'PROMPTPAY',
+    this.omiseExpiresAt,
+    this.omiseQrImageUrl,
+    this.omiseQrBytes,
+    this.omiseQrLogoBytes,
+    this.omiseChargeId,
+    this.omiseAuthorizeUri,
   });
 
   String get displayShopName {
@@ -415,6 +436,12 @@ class ActiveOrderItem {
     'backendStatus': backendStatus,
     'lastOrderNo': lastOrderNo,
     'riderVehicleNumber': riderVehicleNumber,
+    'paymentChannel': paymentChannel,
+    'isVerified': isVerified,
+    'omiseExpiresAt': omiseExpiresAt?.toIso8601String(),
+    'omiseQrImageUrl': omiseQrImageUrl,
+    'omiseChargeId': omiseChargeId,
+    'omiseAuthorizeUri': omiseAuthorizeUri,
   };
 
   factory ActiveOrderItem.fromJson(Map<String, dynamic> json) =>
@@ -464,6 +491,7 @@ class ActiveOrderItem {
         riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
         riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
         riderVehicleNumber: json['riderVehicleNumber'] ?? (json['driver'] != null ? json['driver']['vehicleNo'] : null),
+        paymentChannel: json['paymentChannel'] ?? json['payment_channel'],
         deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
         shopPaymentQrUrl: json['shopPaymentQrUrl'],
         deliveryAddress: parseDeliveryAddressValue(json['deliveryAddress']),
@@ -500,6 +528,13 @@ class ActiveOrderItem {
         orderType: json['orderType'],
         backendStatus: json['backendStatus'],
         lastOrderNo: json['lastOrderNo'],
+        isVerified: json['isVerified'] as bool? ?? false,
+        omiseExpiresAt: json['omiseExpiresAt'] != null
+            ? DateTime.tryParse(json['omiseExpiresAt'].toString())
+            : null,
+        omiseQrImageUrl: json['omiseQrImageUrl'] as String?,
+        omiseChargeId: json['omiseChargeId'] as String?,
+        omiseAuthorizeUri: json['omiseAuthorizeUri'] as String?,
       );
 }
 
@@ -672,12 +707,15 @@ class ActiveOrderState extends ChangeNotifier {
 
   String? get storeName => _primary?.storeName;
   String? get restaurantName => _primary?.restaurantName;
+  bool get isVerified => _primary?.isVerified ?? false;
   String? get logoPath => _primary?.logoPath;
   String? get estimatedTime => _primary?.estimatedTime;
   String? get restaurantId => _primary?.restaurantId;
   String? get statusLabel => _primary?.statusLabel;
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
+  String? get paymentChannel => _primary?.paymentChannel;
+  bool get isOmisePayment => _primary?.isOmisePayment ?? false;
   bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
   bool get isFlexibleDelivery => _primary?.isFlexibleDelivery ?? false;
   bool get hasDeliveryFeeEstimate =>
@@ -832,6 +870,9 @@ class ActiveOrderState extends ChangeNotifier {
     String? orderType,
     String? lastOrderNo,
     bool isFreeDelivery = false,
+    bool isVerified = false,
+    String? paymentChannel,
+    String? preferredOmiseMethod,
   }) {
     // Drop completed/cancelled orders so they cannot hijack the next checkout.
     _purgeTerminalOrders();
@@ -860,6 +901,9 @@ class ActiveOrderState extends ChangeNotifier {
       orderType: orderType,
       lastOrderNo: lastOrderNo,
       isFreeDelivery: isFreeDelivery,
+      isVerified: isVerified,
+      paymentChannel: isVerified ? 'OMISE' : paymentChannel,
+      preferredOmiseMethod: preferredOmiseMethod,
     );
     saveToPrefs();
     notifyListeners();
@@ -875,6 +919,7 @@ class ActiveOrderState extends ChangeNotifier {
     bool? taxEnable,
     int? paymentMethodId,
     String? paymentMethodImageUrl,
+    String? paymentChannel,
     String? orderId,
   }) {
     final targetId = orderId ?? this.orderId;
@@ -886,6 +931,11 @@ class ActiveOrderState extends ChangeNotifier {
     if (taxAmount != null) item.taxAmount = taxAmount;
     if (displayTaxAmount != null) item.displayTaxAmount = displayTaxAmount;
     if (taxEnable != null) item.taxEnable = taxEnable;
+    if (item.isVerified) {
+      item.paymentChannel = 'OMISE';
+    } else if (paymentChannel != null && paymentChannel.isNotEmpty) {
+      item.paymentChannel = paymentChannel;
+    }
     item.paymentMethod = paymentMethod;
     item.paymentMethodId = paymentMethodId;
     item.paymentMethodImageUrl = paymentMethodImageUrl;
@@ -893,6 +943,17 @@ class ActiveOrderState extends ChangeNotifier {
 
     saveToPrefs();
     notifyListeners();
+  }
+
+  /// Marks an active order as verified, enforcing Omise direct payment channel.
+  void markOrderVerified(String orderId) {
+    final item = _orders[orderId] ?? _orders[orderId.replaceAll('#', '')];
+    if (item != null) {
+      item.isVerified = true;
+      item.paymentChannel = 'OMISE';
+      saveToPrefs();
+      notifyListeners();
+    }
   }
 
   /// Records a coupon applied to a pending order during checkout, updating the
@@ -1225,7 +1286,13 @@ class ActiveOrderState extends ChangeNotifier {
       if (pmAccName != null && pmAccName.isNotEmpty) item.paymentAccountName = pmAccName;
     }
 
-    // Delivery proof photo attached by the shop on the "Delivered" step.
+    final pChannel = _parseSafeString(data['paymentChannel'] ?? data['payment_channel']);
+    if (item.isVerified) {
+      item.paymentChannel = 'OMISE';
+    } else if (pChannel != null && pChannel.isNotEmpty) {
+      item.paymentChannel = pChannel;
+    }
+
     final proofUrl = _parseSafeString(data['proofPhotoUrl']);
     if (proofUrl != null && proofUrl.isNotEmpty) {
       item.proofPhotoUrl = _getFullUrl(proofUrl);
@@ -1250,6 +1317,15 @@ class ActiveOrderState extends ChangeNotifier {
       item.shopName = parsedShopNameEn;
       item.restaurantName = parsedShopNameEn;
       item.storeName = parsedShopNameEn;
+    }
+
+    final parsedVerified = (data['isVerified'] as bool?) ??
+        (data['shop'] is Map ? (data['shop'] as Map)['isVerified'] as bool? : null);
+    if (parsedVerified != null) {
+      item.isVerified = parsedVerified;
+    }
+    if (item.isVerified) {
+      item.paymentChannel = 'OMISE';
     }
 
     if (data['orderDeliveryType'] != null) {
@@ -1887,12 +1963,20 @@ class ActiveOrderState extends ChangeNotifier {
           ? o.displayDeliveryFee
           : null,
       isFreeDelivery: o.isFreeDelivery,
+      isVerified: o.isVerified,
+      paymentChannel: o.isVerified ? 'OMISE' : o.paymentChannel,
       transactionDiscount: o.transactionDiscount,
       displayTransactionDiscount: o.displayTransactionDiscount,
     );
   }
 
   void _applyOrderHistorySnapshot(ActiveOrderItem item, OrderHistoryDto o) {
+    item.isVerified = o.isVerified;
+    if (o.isVerified) {
+      item.paymentChannel = 'OMISE';
+    } else if (o.paymentChannel != null && o.paymentChannel!.isNotEmpty) {
+      item.paymentChannel = o.paymentChannel;
+    }
     if (o.lastOrderNo != null && o.lastOrderNo!.isNotEmpty) {
       item.lastOrderNo = o.lastOrderNo;
     }

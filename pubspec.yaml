@@ -83,6 +83,7 @@ dependencies:
   flutter_webrtc: ^1.5.2
   flutter_callkit_incoming: ^3.1.3
   path: ^1.9.1
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -112,6 +113,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/images/services/
+    - assets/images/banks/
     - assets/fonts/
     - assets/alert/
 

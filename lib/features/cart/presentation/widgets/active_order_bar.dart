@@ -14,6 +14,7 @@ import '../../data/cart_manager.dart';
 import '../screens/revise_order_page.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/time_formatter.dart';
+import '../../../home/presentation/widgets/my_together_verified_badge.dart';
 
 class ActiveOrderBar extends StatefulWidget {
   final int? shopId;
@@ -258,17 +259,17 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          order.displayShopName.isNotEmpty
+                        VerifiedRestaurantNameRow(
+                          name: order.displayShopName.isNotEmpty
                               ? order.displayShopName
                               : context.tr('common.restaurant'),
+                          isVerified: order.isVerified,
                           style: AppFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          badgeSize: MyTogetherVerifiedBadge.cardSize,
                         ),
                         Text(
                           _getStatusText(context, order),
@@ -327,6 +328,19 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
         ),
       );
     } else if (s == 1) {
+      if (order.isVerified) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderStatusPage(
+              foodTotal: order.resolvedItemSubtotal,
+              deliveryFee: order.deliveryFee ?? 0,
+              autoShowPaymentSheet: true,
+            ),
+          ),
+        );
+        return;
+      }
       if (AwaitingPaymentPage.isCurrentlyVisible) return;
       Navigator.push(
         context,
@@ -349,6 +363,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
               nameMm: order.shopNameMm,
               nameTh: order.shopNameTh,
               items: order.orderItems,
+              isVerified: order.isVerified,
             ),
             foodTotal: order.resolvedItemSubtotal.round(),
           ),
@@ -482,6 +497,14 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       case 0:
         return context.tr('active_order.awaiting_confirmation');
       case 1:
+        if (order.isVerified) {
+          final isPaidOrVerified =
+              order.backendStatus?.toUpperCase() == 'PAID' ||
+                  order.backendStatus?.toUpperCase() == 'PAYMENT_VERIFIED';
+          return isPaidOrVerified
+              ? context.tr('order.status.payment_verified')
+              : context.tr('order.status.waiting_payment');
+        }
         return order.showUploadSection
             ? context.tr('active_order.awaiting_payment')
             : context.tr('active_order.verifying_payment');

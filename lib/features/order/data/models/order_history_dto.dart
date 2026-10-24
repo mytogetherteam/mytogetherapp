@@ -62,11 +62,16 @@ class OrderHistoryDto {
   final double? transactionDiscount;
   final String? displayTransactionDiscount;
   final bool isFreeDelivery;
+  final bool isVerified;
   final bool? taxEnable;
   final OrderReviewDto? orderReview;
   final bool hasChatConversation;
   final String? paymentMethodName;
   final String? paymentMethodIconUrl;
+  final String? paymentChannel;
+
+  bool get isOmisePayment =>
+      (paymentChannel ?? '').toUpperCase() == 'OMISE' || isVerified;
 
   OrderHistoryDto({
     required this.id,
@@ -98,11 +103,13 @@ class OrderHistoryDto {
     this.transactionDiscount,
     this.displayTransactionDiscount,
     this.isFreeDelivery = false,
+    this.isVerified = false,
     this.taxEnable,
     this.orderReview,
     this.hasChatConversation = false,
     this.paymentMethodName,
     this.paymentMethodIconUrl,
+    this.paymentChannel,
   }) : _shopName = shopName;
 
   bool get isPickupFulfillment {
@@ -216,6 +223,9 @@ class OrderHistoryDto {
       displayTransactionDiscount: json['displayTransactionDiscount'] as String?,
       isFreeDelivery: json['isFreeDelivery'] == true ||
           (json['displayDeliveryFee']?.toString().toUpperCase() == 'FREE'),
+      isVerified: (json['isVerified'] as bool?) ??
+          (shop?['isVerified'] as bool?) ??
+          false,
       taxEnable: _resolveTaxEnable(json, shop),
       orderReview: json['orderReview'] is Map<String, dynamic>
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
@@ -223,6 +233,7 @@ class OrderHistoryDto {
       hasChatConversation: json['hasChatConversation'] == true,
       paymentMethodName: _paymentName(json['paymentMethod']),
       paymentMethodIconUrl: _paymentIcon(json['paymentMethod']),
+      paymentChannel: json['paymentChannel']?.toString() ?? json['payment_channel']?.toString(),
     );
   }
 

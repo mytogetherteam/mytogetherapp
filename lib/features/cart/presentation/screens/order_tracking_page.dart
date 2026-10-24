@@ -20,6 +20,7 @@ import '../../data/cart_manager.dart';
 import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
 import '../../data/active_order_state.dart';
 import '../../../home/data/restaurant_data.dart' show Restaurant;
+import '../../../home/presentation/widgets/my_together_verified_badge.dart';
 import 'awaiting_payment_page.dart';
 import 'order_cancel_page.dart';
 import 'order_complete_page.dart';
@@ -381,7 +382,17 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             }
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _navigateToPayment();
+            if (mounted) {
+              final order = state.getOrder(state.orderId);
+              final isVerified = order?.isVerified ??
+                  widget.restaurant?.isVerified ??
+                  widget.store.isVerified;
+              if (isVerified) {
+                _navigateToOrderStatus(autoShowPaymentSheet: true);
+              } else {
+                _navigateToPayment();
+              }
+            }
           });
         } else if (ActiveOrderState.isCookingTransitionStatus(upperStatus)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -495,7 +506,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (status == 1) {
-        if (!AwaitingPaymentPage.isCurrentlyVisible) {
+        final order = state.getOrder(state.orderId);
+        final isVerified = order?.isVerified ??
+            widget.restaurant?.isVerified ??
+            widget.store.isVerified;
+        if (isVerified) {
+          _navigateToOrderStatus(autoShowPaymentSheet: true);
+        } else if (!AwaitingPaymentPage.isCurrentlyVisible) {
           _navigateToPayment();
         }
       } else if (status == 2) {
@@ -1283,7 +1300,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     );
   }
 
-  void _navigateToOrderStatus() {
+  void _navigateToOrderStatus({bool autoShowPaymentSheet = false}) {
     if (!mounted || OrderStatusPage.isCurrentlyVisible) return;
     _statusPollTimer?.cancel();
     final fee = _deliveryFee ?? ActiveOrderState.instance.deliveryFee ?? 0.0;
@@ -1293,6 +1310,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         builder: (_) => OrderStatusPage(
           foodTotal: widget.foodTotal.toDouble(),
           deliveryFee: fee,
+          autoShowPaymentSheet: autoShowPaymentSheet,
         ),
       ),
     );
@@ -2051,8 +2069,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      _restaurantName,
+                    child: VerifiedRestaurantNameRow(
+                      name: _restaurantName,
+                      isVerified: widget.restaurant?.isVerified ??
+                          ActiveOrderState.instance.isVerified,
+                      centered: true,
                       style: AppFonts.poppins(
                         color: Colors.white,
                         fontSize: 20,
@@ -2065,9 +2086,8 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
+                      badgeSize: MyTogetherVerifiedBadge.detailSize,
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -2128,16 +2148,17 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  _restaurantName,
+                child: VerifiedRestaurantNameRow(
+                  name: _restaurantName,
+                  isVerified: widget.restaurant?.isVerified ??
+                      ActiveOrderState.instance.isVerified,
+                  centered: true,
                   style: AppFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+                  badgeSize: MyTogetherVerifiedBadge.cardSize,
                 ),
               ),
             ],
@@ -2284,8 +2305,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                   const SizedBox(width: 8),
                 ],
                 Flexible(
-                  child: Text(
-                    _restaurantName,
+                  child: VerifiedRestaurantNameRow(
+                    name: _restaurantName,
+                    isVerified: widget.restaurant?.isVerified ??
+                        ActiveOrderState.instance.isVerified,
                     style: AppFonts.poppins(
                       color: Colors.white,
                       fontSize: 14,
@@ -2297,8 +2320,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                         ),
                       ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    badgeSize: MyTogetherVerifiedBadge.cardSize,
                   ),
                 ),
               ],

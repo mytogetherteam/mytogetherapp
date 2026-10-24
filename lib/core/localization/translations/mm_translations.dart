@@ -189,6 +189,8 @@ const Map<String, String> kMmTranslations = {
   'profile.notifications': 'အသိပေးချက်များ',
   'profile.account_settings': 'အကောင့်ဆက်တင်များ',
   'profile.account_settings_sub': 'ဘော်ဒါ့အကောင့်နှင့် လုံခြုံရေးကို စီမံပါ',
+  'profile.payment_methods': 'ငွေပေးချေမှု နည်းလမ်းများ',
+  'profile.payment_methods_sub': 'ကတ်များ၊ PromptPay၊ TrueMoney နှင့် အလိုအလျောက် ပေးချေမှု',
   'profile.security': 'လုံခြုံရေး',
   'profile.language': 'ဘာသာစကား',
   'profile.help_center': 'အကူအညီစင်တာ',

@@ -310,4 +310,50 @@ class OrderRepository {
     }
     return null;
   }
+
+  /// Initiate direct payment via Omise (PromptPay or TrueMoney)
+  Future<Map<String, dynamic>?> initiateOmisePayment(
+    int orderId, {
+    required String method,
+    String? phoneNumber,
+    bool forceNew = false,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/api/user/orders/$orderId/pay/omise',
+        data: {
+          'method': method,
+          if (phoneNumber != null && phoneNumber.trim().isNotEmpty)
+            'phoneNumber': phoneNumber.trim(),
+          if (forceNew) 'forceNew': true,
+        },
+      );
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) return data;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error initiating Omise payment: $e');
+      rethrow;
+    }
+  }
+
+  /// Query latest Omise payment status
+  Future<Map<String, dynamic>?> getOmisePaymentStatus(int orderId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/api/user/orders/$orderId/pay/omise',
+      );
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) return data;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting Omise payment status: $e');
+      return null;
+    }
+  }
+
 }

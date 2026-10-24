@@ -110,10 +110,11 @@ class VerifiedRestaurantNameRow extends StatelessWidget {
       );
     }
 
-    // Full-width: name fills leftover space; badge pinned to the trailing edge.
+    // Name with inline verified badge; truncates with ellipsis before badge if needed.
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(child: nameText),
+        Flexible(child: nameText),
         ?badge,
       ],
     );

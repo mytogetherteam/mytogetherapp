@@ -128,6 +128,81 @@
             <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
         </intent>
+        <!-- Thai Banking App Schemes -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="kplus" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="scbeasy" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ktbnext" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bualuangmbanking" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="kma" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ttbtouch" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mymo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ghball" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="uobtmrw" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="kkpmobile" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="cimbthai" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="baacmobile" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="truemoney" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tisco" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="lhbyou" />
+        </intent>
+        <!-- Packages for Android app detection -->
+        <package android:name="com.kasikorn.retail.mbanking.wap" />
+        <package android:name="com.scb.phone" />
+        <package android:name="ktbcs.netbank" />
+        <package android:name="com.bbl.mobilephone" />
+        <package android:name="com.krungsri.kma" />
+        <package android:name="com.ttbbank.touch" />
+        <package android:name="com.gsb.mymo" />
+        <package android:name="com.ghb.ghball" />
+        <package android:name="com.uob.mighty.th" />
+        <package android:name="com.kkp.mobile" />
+        <package android:name="com.cimbthai.mbb" />
+        <package android:name="com.baac.amobile" />
+        <package android:name="th.co.truemoney.wallet" />
     </queries>
 </manifest>
 

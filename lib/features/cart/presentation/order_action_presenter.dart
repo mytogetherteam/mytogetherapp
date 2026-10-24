@@ -6,6 +6,7 @@ import '../../../core/auth/auth_service.dart';
 import '../../../core/localization/app_translations.dart';
 import '../data/active_order_state.dart';
 import 'screens/awaiting_payment_page.dart';
+import 'screens/order_status_page.dart';
 import 'screens/order_cancel_page.dart';
 import 'screens/revise_order_page.dart';
 import 'widgets/order_action_dialog.dart';
@@ -178,6 +179,18 @@ class OrderActionPresenter {
   static void _openAwaitingPayment(BuildContext context, ActiveOrderItem order) {
     final deliveryFee = order.deliveryFee ?? 0;
     final foodTotal = order.resolvedItemSubtotal;
+    if (order.isVerified) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OrderStatusPage(
+            foodTotal: foodTotal > 0 ? foodTotal : 0,
+            deliveryFee: deliveryFee,
+            autoShowPaymentSheet: true,
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AwaitingPaymentPage(

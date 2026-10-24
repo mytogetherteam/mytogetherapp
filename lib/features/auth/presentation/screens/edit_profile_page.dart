@@ -7,7 +7,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/media/image_crop_helper.dart';
 import 'package:mytogetherapp/core/media/picked_image.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
 import 'package:mytogetherapp/core/network/dio_error_message.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/primary_gradient_button.dart';
@@ -52,8 +52,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   String _resolveAvatarUrl(String path) {
-    if (path.startsWith('http')) return path;
-    return '${ApiClient.baseUrl}/$path';
+    return resolveMediaUrl(path);
   }
 
   Future<void> _pickAvatar() async {

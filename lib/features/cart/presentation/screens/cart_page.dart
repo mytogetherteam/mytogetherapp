@@ -4,6 +4,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import '../../../home/presentation/widgets/my_together_verified_badge.dart';
 import '../../data/cart_manager.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
 import '../widgets/confirm_remove_modal.dart';
@@ -149,13 +150,15 @@ class _CartPageState extends State<CartPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    store.name,
+                  VerifiedRestaurantNameRow(
+                    name: store.name,
+                    isVerified: store.isVerified,
                     style: AppFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
                     ),
+                    badgeSize: MyTogetherVerifiedBadge.cardSize,
                   ),
                   const SizedBox(height: 4),
                   Text(

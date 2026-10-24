@@ -1,3 +1,4 @@
+import '../widgets/omise_payment_section.dart';
 import 'dart:async';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:ui' as ui;
@@ -19,6 +20,8 @@ import '../../../../core/network/api_client.dart';
 import '../../../order/data/repositories/order_repository.dart';
 import '../../data/active_order_state.dart';
 import '../../../coupons/presentation/widgets/order_coupon_discount_section.dart';
+import '../../../home/data/repositories/restaurant_repository.dart';
+import '../../../home/data/shop_storage.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/file_url_util.dart';
@@ -65,6 +68,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   late AnimationController _dotsAnimController;
   final GlobalKey _qrKey = GlobalKey();
+  bool _forceManualSlip = false;
   bool _showUploadSection = false;
   bool _isOrderSummaryExpanded = false;
   PickedImage? _receiptImage;
@@ -175,6 +179,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     // otherwise leave the user stuck on "awaiting confirmation" long after the
     // shop has already advanced (or completed) the order.
     WidgetsBinding.instance.addObserver(this);
+    _ensureVerifiedShopStatus();
     _reconcileWithBackend();
 
     // Listen for WebSocket updates (Rider, Status, Fee)
@@ -197,8 +202,43 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   /// UI if the order has already moved past the awaiting-payment stage.
   Future<void> _reconcileWithBackend() async {
     await ActiveOrderState.instance.syncActiveOrder(orderId: widget.orderId);
+    await _ensureVerifiedShopStatus();
     if (!mounted) return;
     _advanceForOrder(ActiveOrderState.instance.getOrder(widget.orderId));
+  }
+
+  Future<void> _ensureVerifiedShopStatus() async {
+    final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    if (order == null) return;
+
+    if (order.isVerified && (order.paymentChannel ?? '').toUpperCase() == 'OMISE') {
+      return;
+    }
+
+    final rawShopId = order.shopId ?? order.restaurantId;
+    final shopId = int.tryParse(rawShopId?.replaceAll(RegExp(r'[^0-9]'), '') ?? '');
+
+    bool isShopVerified = order.isVerified;
+    if (!isShopVerified && shopId != null && shopId > 0) {
+      final cachedShop = await ShopStorage.getShop(shopId);
+      if (cachedShop != null &&
+          (cachedShop['isVerified'] == true ||
+              (cachedShop['shop'] is Map && cachedShop['shop']['isVerified'] == true))) {
+        isShopVerified = true;
+      } else {
+        try {
+          final restaurant = await RestaurantRepository.instance.getShopById(shopId);
+          if (restaurant.isVerified) {
+            isShopVerified = true;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (isShopVerified) {
+      ActiveOrderState.instance.markOrderVerified(order.orderId);
+      if (mounted) setState(() {});
+    }
   }
 
   /// Navigates off the awaiting-payment screen once the order has actually
@@ -209,6 +249,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus >= 2) {
       _hasNavigated = true;
+      final numId = int.tryParse((widget.orderId ?? order.orderId).replaceAll('#', ''));
+      if (numId != null) {
+        OmisePaymentSection.clearSession(numId);
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -223,6 +267,10 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
 
     if (order.orderStatus == -1) {
       _hasNavigated = true;
+      final numId = int.tryParse((widget.orderId ?? order.orderId).replaceAll('#', ''));
+      if (numId != null) {
+        OmisePaymentSection.clearSession(numId);
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -273,6 +321,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         _lastQrUrl = qrUrl;
         _qrLoadFailed = false;
       }
+      _ensureVerifiedShopStatus();
       if (_needsPaymentMethodFetch(order)) {
         _fetchPaymentMethodDetails();
       }
@@ -1084,6 +1133,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
   Widget build(BuildContext context) {
     final bool canSubmit = _receiptImage != null;
     final order = ActiveOrderState.instance.getOrder(widget.orderId);
+    final bool isOmise = order?.isOmisePayment == true && !_forceManualSlip;
     final bool isVerifying = order?.isPaymentChecking == true;
     final bool isPaymentRevise = _isPaymentReviseOrder(order);
     // An item revision (unavailable items) still needs the "review items" flow;
@@ -1110,146 +1160,238 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
       },
       child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        leading: (_showUploadSection && !isReupload)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  setState(() => _showUploadSection = false);
+      appBar: isOmise
+          ? AppBar(
+              systemOverlayStyle: const SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              automaticallyImplyLeading: false,
+              centerTitle: true,
+              title: Text(
+                pageTitle,
+                style: AppFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF0F172A), size: 22),
+                tooltip: 'Close',
+                onPressed: _goHome,
+              ),
+              actions: [
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF64748B), size: 22),
+                  offset: const Offset(0, 45),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onSelected: (value) {
+                    if (value == 'cancel' && !_isCancelling) {
+                      _showCancelConfirmationSheet();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'cancel',
+                      child: Text(
+                        context.tr('order_tracking.cancel_order'),
+                        style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(
+                  color: const Color(0xFFE2E8F0),
+                  height: 1,
+                ),
+              ),
+            )
+          : AppBar(
+              systemOverlayStyle: const SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
+              ),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              automaticallyImplyLeading: false,
+              leading: (_showUploadSection && !isReupload)
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        setState(() => _showUploadSection = false);
+                        ActiveOrderState.instance.setShowUploadSection(
+                          false,
+                          orderId: widget.orderId,
+                        );
+                      },
+                    )
+                  : null,
+              centerTitle: false,
+              titleSpacing: (_showUploadSection && !isReupload) ? 0 : 20,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(54),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(
+                    children: [
+                      _buildStepIndicator(
+                        stepNum: 1,
+                        title: context.tr('payment.step_payment'),
+                        isActive: true,
+                      ),
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          height: 2,
+                          color: _showUploadSection ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      _buildStepIndicator(
+                        stepNum: 2,
+                        title: context.tr('payment.step_upload'),
+                        isActive: _showUploadSection,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              title: Text(
+                pageTitle,
+                style: AppFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              actions: [
+                PopupMenuButton<String>(
+                  icon: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                  ),
+                  offset: const Offset(0, 45),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onSelected: (value) {
+                    if (value == 'cancel' && !_isCancelling) {
+                      _showCancelConfirmationSheet();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'cancel',
+                      child: Text(
+                        context.tr('order_tracking.cancel_order'),
+                        style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 20, left: 4),
+                  child: GestureDetector(
+                    onTap: _goHome,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      body: isOmise
+          ? SafeArea(
+              child: OmisePaymentSection(
+                order: order!,
+                orderId: int.tryParse(
+                      order.orderId.replaceAll('#', ''),
+                    ) ??
+                    _chatOrderId ??
+                    0,
+                initialMethod: order.preferredOmiseMethod ?? 'PROMPTPAY',
+                onPaymentCompleted: () {
+                  if (!mounted || _hasNavigated) return;
+                  _hasNavigated = true;
+                  final activeOrder = ActiveOrderState.instance.getOrder(widget.orderId);
+                  if (activeOrder != null) {
+                    activeOrder.orderStatus = 2;
+                    activeOrder.backendStatus = 'COOKING';
+                  }
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderStatusPage(
+                        foodTotal: widget.foodTotal,
+                        deliveryFee: order.deliveryFee ?? widget.deliveryFee,
+                      ),
+                    ),
+                  );
+                },
+                onFallbackToSlip: () {
+                  setState(() {
+                    _forceManualSlip = true;
+                    _showUploadSection = false;
+                  });
                   ActiveOrderState.instance.setShowUploadSection(
                     false,
                     orderId: widget.orderId,
                   );
                 },
-              )
-            : null,
-        centerTitle: false,
-        titleSpacing: (_showUploadSection && !isReupload) ? 0 : 20,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(54),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              children: [
-                _buildStepIndicator(
-                  stepNum: 1,
-                  title: context.tr('payment.step_payment'),
-                  isActive: true,
-                ),
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
-                    height: 2,
-                    color: _showUploadSection ? Colors.white : Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-                _buildStepIndicator(
-                  stepNum: 2,
-                  title: context.tr('payment.step_upload'),
-                  isActive: _showUploadSection,
-                ),
-              ],
-            ),
-          ),
-        ),
-        title: Text(
-          pageTitle,
-          style: AppFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.more_vert, color: Colors.white, size: 20),
-            ),
-            offset: const Offset(0, 45),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onSelected: (value) {
-              if (value == 'cancel' && !_isCancelling) {
-                _showCancelConfirmationSheet();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'cancel',
-                child: Text(
-                  context.tr('order_tracking.cancel_order'),
-                  style: AppFonts.poppins(color: Colors.red, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 20, left: 4),
-            child: GestureDetector(
-              onTap: _goHome,
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.close, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
 
-              if (isItemRevise) ...[
-                _buildReviseBanner(order),
-                const SizedBox(height: 14),
-              ] else if (isReupload) ...[
-                _buildSlipRequestBanner(order?.reviseReason),
-                const SizedBox(height: 14),
-              ],
+                    if (isItemRevise) ...[
+                      _buildReviseBanner(order),
+                      const SizedBox(height: 14),
+                    ] else if (isReupload) ...[
+                      _buildSlipRequestBanner(order?.reviseReason),
+                      const SizedBox(height: 14),
+                    ],
 
+                    // ── Flexible Delivery Note ──
+                    if (order?.isFlexibleDelivery == true &&
+                        order?.isAwaitingShopConfirmation != true) ...[
+                      FlexibleDeliveryNote(
+                        estimatedFee: order?.displayDeliveryFee?.isNotEmpty == true
+                            ? order!.displayDeliveryFee!
+                            : '฿ ${order?.deliveryFee?.toInt() ?? widget.deliveryFee.toInt()}',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-
-              // ── Flexible Delivery Note ──
-              if (order?.isFlexibleDelivery == true &&
-                  order?.isAwaitingShopConfirmation != true) ...[
-                FlexibleDeliveryNote(
-                  estimatedFee: order?.displayDeliveryFee?.isNotEmpty == true
-                      ? order!.displayDeliveryFee!
-                      : '฿ ${order?.deliveryFee?.toInt() ?? widget.deliveryFee.toInt()}',
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ── VERIFYING STATE ──
-              if (isVerifying) ...[
-                _buildVerifyingSection(),
-                const SizedBox(height: 24),
-              ] else ...[
+                    if (isVerifying) ...[
+                      _buildVerifyingSection(),
+                      const SizedBox(height: 24),
+                    ] else ...[
                 if (!_showUploadSection) ...[
                   // ── STEP 1: Payment details (account + optional QR) ──
                   Builder(
@@ -1279,6 +1421,49 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (order?.isOmisePayment == true && _forceManualSlip) ...[
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 14),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0FDF4),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(PhosphorIconsRegular.lightning, size: 16, color: Color(0xFF16A34A)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'PromptPay / TrueMoney ဖြင့် တိုက်ရိုက်ပေးချေမည်လား?',
+                                        style: AppFonts.poppins(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF15803D),
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => setState(() => _forceManualSlip = false),
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'ပြောင်းမည်',
+                                        style: AppFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -1723,7 +1908,7 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           ),
         ),
       ),
-      bottomNavigationBar: (isVerifying || order == null)
+      bottomNavigationBar: (isVerifying || order == null || (order.isOmisePayment == true && !_forceManualSlip))
           ? null
           : Container(
               padding: EdgeInsets.fromLTRB(
@@ -1755,47 +1940,114 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
                           Expanded(
                             child: Container(
                               height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  ChatUnreadBadge(
-                                    orderId: _chatOrderId,
-                                    child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                    spreadRadius: 0,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    context.tr('order_confirm.chat'),
-                                    style: AppFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF1E293B),
-                                    ),
+                                  BoxShadow(
+                                    color: const Color(0xFF64748B).withValues(alpha: 0.04),
+                                    blurRadius: 3,
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(24),
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    final state = ActiveOrderState.instance;
+                                    _openChat(
+                                      name: state.restaurantName,
+                                      subtitle: context.tr('common.restaurant'),
+                                      avatarUrl: state.logoPath,
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(24),
+                                  splashColor: AppColors.primary.withValues(alpha: 0.1),
+                                  highlightColor:
+                                      AppColors.primary.withValues(alpha: 0.05),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ChatUnreadBadge(
+                                        orderId: _chatOrderId,
+                                        child: const Icon(
+                                          PhosphorIcons.chatCircleTextFill,
+                                          color: Color(0xFF1E293B),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        context.tr('order_confirm.chat'),
+                                        style: AppFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () {
-                              _makeCall(ActiveOrderState.instance.shopPhone);
-                            },
-                            child: Container(
-                              height: 48,
-                              width: 48,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF8FAFC),
-                                shape: BoxShape.circle,
+                          Container(
+                            height: 48,
+                            width: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                                width: 1.2,
                               ),
-                              child: const Icon(
-                                PhosphorIcons.phoneFill,
-                                color: Color(0xFF1E293B),
-                                size: 20,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                  spreadRadius: 0,
+                                ),
+                                BoxShadow(
+                                  color: const Color(0xFF64748B).withValues(alpha: 0.04),
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _makeCall(ActiveOrderState.instance.shopPhone);
+                                },
+                                customBorder: const CircleBorder(),
+                                splashColor: AppColors.primary.withValues(alpha: 0.1),
+                                highlightColor:
+                                    AppColors.primary.withValues(alpha: 0.05),
+                                child: const Center(
+                                  child: Icon(
+                                    PhosphorIcons.phoneFill,
+                                    color: Color(0xFF1E293B),
+                                    size: 20,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

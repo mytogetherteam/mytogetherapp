@@ -127,11 +127,13 @@ class OrderStatusImageBadge extends StatelessWidget {
 class RestaurantOrderStatusStrip extends StatelessWidget {
   final String message;
   final OrderBlockReason reason;
+  final double? maxWidth;
 
   const RestaurantOrderStatusStrip({
     super.key,
     required this.message,
     required this.reason,
+    this.maxWidth,
   });
 
   @override
@@ -164,7 +166,7 @@ class RestaurantOrderStatusStrip extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Container(
           constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width - 30,
+            maxWidth: maxWidth ?? (MediaQuery.sizeOf(context).width - 30),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(

@@ -21,6 +21,7 @@ import 'package:mytogetherapp/features/cart/data/cart_manager.dart';
 import 'package:mytogetherapp/features/cart/data/models/cart_dto.dart';
 import 'package:mytogetherapp/core/presentation/widgets/menu_image_placeholder.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/image_skeleton_loader.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/my_together_verified_badge.dart';
 import 'package:mytogetherapp/features/cart/presentation/screens/cart_page.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/chat/data/models/chat_window.dart';
@@ -214,15 +215,15 @@ class _OrderHistoryCardState extends State<OrderHistoryCard> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            widget.order.shopName ?? context.tr('common.shop'),
+          child: VerifiedRestaurantNameRow(
+            name: widget.order.shopName ?? context.tr('common.shop'),
+            isVerified: widget.order.isVerified,
             style: AppFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            badgeSize: MyTogetherVerifiedBadge.cardSize,
           ),
         ),
         ConstrainedBox(

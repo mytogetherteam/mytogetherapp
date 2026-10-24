@@ -9,6 +9,7 @@ import 'package:mytogetherapp/core/utils/file_url_util.dart';
 import 'package:mytogetherapp/core/utils/price_formatter.dart';
 import 'package:mytogetherapp/features/order/data/models/order_history_dto.dart';
 import 'package:mytogetherapp/features/order/data/repositories/order_repository.dart';
+import 'package:mytogetherapp/features/home/presentation/widgets/my_together_verified_badge.dart';
 
 /// What was ordered: dishes, quantities, and the fee breakdown.
 /// Dishes load a page at a time. Courier tracking links are not shown here.
@@ -195,12 +196,14 @@ class _OrderHistoryDetailPageState extends State<OrderHistoryDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            order.shopName ?? context.tr('common.shop'),
+          VerifiedRestaurantNameRow(
+            name: order.shopName ?? context.tr('common.shop'),
+            isVerified: order.isVerified,
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
+            badgeSize: MyTogetherVerifiedBadge.detailSize,
           ),
           const SizedBox(height: 4),
           Text(

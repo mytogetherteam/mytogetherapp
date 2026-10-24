@@ -19,6 +19,7 @@ import '../../../chat/presentation/widgets/chat_window_hint.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import '../../../chat/data/models/chat_window.dart';
 import '../../../chat/data/services/chat_service.dart';
+import '../../../home/presentation/widgets/my_together_verified_badge.dart';
 
 class OrderCompletePage extends StatefulWidget {
   static bool isCurrentlyVisible = false;
@@ -498,17 +499,17 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                               : _buildNoImageAvatar(),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        context.trArgs('order_complete.rate_experience', {
-                          'shop': storeName,
-                        }),
+                      const SizedBox(height: 16),
+                      VerifiedRestaurantNameRow(
+                        name: storeName,
+                        isVerified: order?.isVerified ?? false,
                         style: AppFonts.poppins(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1E293B),
                         ),
-                        textAlign: TextAlign.center,
+                        centered: true,
+                        badgeSize: MyTogetherVerifiedBadge.detailSize,
                       ),
                       const SizedBox(height: 10),
                       Text(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
@@ -191,14 +192,55 @@ class AppDialog {
     );
   }
 
+  static OverlayEntry? _activeToastEntry;
+  static Timer? _activeToastTimer;
+
   static void showToast(
     BuildContext context,
     String message, {
     bool isError = false,
     String? actionLabel,
     VoidCallback? onAction,
+    Duration duration = const Duration(seconds: 3),
   }) {
-    final messenger = ScaffoldMessenger.of(context);
+    // 1. Try Root Overlay first so the toast ALWAYS floats above modal bottom sheets and dialogs
+    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlayState != null) {
+      _activeToastTimer?.cancel();
+      _activeToastEntry?.remove();
+      _activeToastEntry = null;
+
+      late OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (ctx) => _ToastOverlayWidget(
+          message: message,
+          isError: isError,
+          actionLabel: actionLabel,
+          onAction: onAction,
+          onDismiss: () {
+            if (_activeToastEntry == entry) {
+              _activeToastEntry?.remove();
+              _activeToastEntry = null;
+            }
+          },
+        ),
+      );
+
+      _activeToastEntry = entry;
+      overlayState.insert(entry);
+
+      _activeToastTimer = Timer(duration, () {
+        if (_activeToastEntry == entry) {
+          _activeToastEntry?.remove();
+          _activeToastEntry = null;
+        }
+      });
+      return;
+    }
+
+    // 2. Fallback to ScaffoldMessenger if Overlay is unavailable
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
     messenger.clearSnackBars();
     final bool hasAction = actionLabel != null && onAction != null;
     messenger.showSnackBar(
@@ -206,7 +248,9 @@ class AppDialog {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            gradient: isError
+                ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)])
+                : AppColors.primaryGradient,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
@@ -376,6 +420,161 @@ class AppDialog {
               color: color,
               fontWeight: FontWeight.bold,
               fontSize: 16,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToastOverlayWidget extends StatefulWidget {
+  final String message;
+  final bool isError;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final VoidCallback onDismiss;
+
+  const _ToastOverlayWidget({
+    required this.message,
+    required this.isError,
+    this.actionLabel,
+    this.onAction,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_ToastOverlayWidget> createState() => _ToastOverlayWidgetState();
+}
+
+class _ToastOverlayWidgetState extends State<_ToastOverlayWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.6),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _animController.forward();
+  }
+
+  Future<void> _dismiss() async {
+    if (!mounted) return;
+    await _animController.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Material(
+                color: Colors.transparent,
+                child: GestureDetector(
+                  onTap: _dismiss,
+                  onVerticalDragUpdate: (details) {
+                    if (details.primaryDelta != null && details.primaryDelta! < -4) {
+                      _dismiss();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: widget.isError
+                          ? const LinearGradient(
+                              colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                            )
+                          : AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (widget.isError ? const Color(0xFFDC2626) : AppColors.primary)
+                              .withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          widget.isError
+                              ? Icons.error_outline_rounded
+                              : Icons.check_circle_outline_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            widget.message,
+                            style: AppFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (widget.actionLabel != null && widget.onAction != null) ...[
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
+                              _dismiss();
+                              widget.onAction!();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                widget.actionLabel!,
+                                style: AppFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),

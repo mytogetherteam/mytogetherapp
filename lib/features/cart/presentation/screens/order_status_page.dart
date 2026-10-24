@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -26,6 +28,7 @@ import 'awaiting_payment_page.dart';
 import 'order_cancel_page.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
 import '../../../home/presentation/widgets/image_skeleton_loader.dart';
+import '../../../home/presentation/widgets/my_together_verified_badge.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../chat/presentation/screens/chat_page.dart';
@@ -34,14 +37,18 @@ import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/pickup_order_qr_card.dart';
+import '../widgets/order_payment_bottom_sheet.dart';
 import '../../../../app.dart';
 import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import '../../../call/data/call_session.dart';
+import '../widgets/food_game/food_game_banner.dart';
 
 class OrderStatusPage extends StatefulWidget {
   final double foodTotal;
   final double deliveryFee;
+  final bool autoShowPaymentSheet;
+  final String? orderId;
 
   static bool isCurrentlyVisible = false;
 
@@ -49,6 +56,8 @@ class OrderStatusPage extends StatefulWidget {
     super.key,
     required this.foodTotal,
     required this.deliveryFee,
+    this.autoShowPaymentSheet = false,
+    this.orderId,
   });
 
   @override
@@ -60,6 +69,44 @@ class _OrderStatusPageState extends State<OrderStatusPage>
   int _currentStatus = 1;
   String? _backendStatus;
   bool _hasShownDeliveryFeeModal = false;
+  bool _isPaymentSheetShowing = false;
+
+  Future<void> _openPaymentBottomSheet() async {
+    if (_isPaymentSheetShowing || !mounted) return;
+    final orderIdStr = widget.orderId ?? ActiveOrderState.instance.orderId;
+    final order = ActiveOrderState.instance.getOrder(orderIdStr);
+    if (order == null) return;
+
+    _isPaymentSheetShowing = true;
+    final intId = _currentOrderId ??
+        int.tryParse(order.orderId.replaceAll('#', '')) ??
+        0;
+
+    await OrderPaymentBottomSheet.show(
+      context,
+      order: order,
+      orderId: intId,
+      foodTotal: widget.foodTotal,
+      deliveryFee: ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee,
+      onPaymentCompleted: () {
+        final active = ActiveOrderState.instance.getOrder(order.orderId);
+        if (active != null) {
+          active.orderStatus = 2;
+          active.backendStatus = 'COOKING';
+        }
+        if (mounted) {
+          setState(() {
+            _currentStatus = 2;
+            _backendStatus = 'COOKING';
+          });
+          _animateToStatus(2);
+        }
+      },
+    );
+
+    _isPaymentSheetShowing = false;
+    if (mounted) setState(() {});
+  }
 
   GoogleMapController? _mapController;
   // ignore: unused_field
@@ -141,6 +188,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     _backendStatus = ActiveOrderState.instance.backendStatus;
     _startFakeTimer();
     _fetchOrderWaitingBanner();
+
+    if (widget.autoShowPaymentSheet || _currentStatus == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _currentStatus == 1) {
+          _openPaymentBottomSheet();
+        }
+      });
+    }
 
     // Auto-navigate if already completed
     if (ActiveOrderState.instance.orderStatus == 4) {
@@ -238,21 +293,25 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         // user off the status screen.
         if (state.orderStatus == 1 &&
             state.isSlipRequested &&
-            !state.isPaymentChecking &&
-            !AwaitingPaymentPage.isCurrentlyVisible) {
+            !state.isPaymentChecking) {
           if (!state.hasNotifiedSlipRequest) {
             state.setNotifiedSlipRequest(true);
           }
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AwaitingPaymentPage(
-                orderId: state.orderId,
-                foodTotal: widget.foodTotal,
-                deliveryFee: state.deliveryFee ?? widget.deliveryFee,
+          final currentOrder = state.getOrder(state.orderId);
+          if (currentOrder?.isVerified == true) {
+            _openPaymentBottomSheet();
+          } else if (!AwaitingPaymentPage.isCurrentlyVisible) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AwaitingPaymentPage(
+                  orderId: state.orderId,
+                  foodTotal: widget.foodTotal,
+                  deliveryFee: state.deliveryFee ?? widget.deliveryFee,
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       }
     });
@@ -547,6 +606,19 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     );
   }
 
+  bool get _isVerifiedShop {
+    final state = ActiveOrderState.instance;
+    final order = state.getOrder(widget.orderId ?? state.orderId);
+    return order?.isVerified == true || state.isVerified;
+  }
+
+  bool get _isPaymentVerified {
+    final upper = _backendStatus?.toUpperCase();
+    return upper == 'PAID' ||
+        upper == 'PAYMENT_VERIFIED' ||
+        _currentStatus >= 2;
+  }
+
   String _statusTitle(BuildContext context) {
     if (_currentStatus == -1) return context.tr('order_status.cancelled');
     final isPickup = ActiveOrderState.instance.isPickupFulfillment;
@@ -556,6 +628,32 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     if (isPickup && _currentStatus == 4) {
       return context.tr('order_status.picked_up');
     }
+
+    if (_isVerifiedShop) {
+      if (!_isPaymentVerified) {
+        return context.tr('order.status.waiting_payment');
+      }
+      final isExplicitPaymentVerified =
+          _backendStatus?.toUpperCase() == 'PAYMENT_VERIFIED' ||
+              _backendStatus?.toUpperCase() == 'PAID';
+      if (_currentStatus == 1 || (_currentStatus == 2 && isExplicitPaymentVerified)) {
+        return context.tr('order.status.payment_verified');
+      }
+      switch (_currentStatus) {
+        case 2:
+          if (_backendStatus?.toUpperCase() == 'COOKING') {
+            return context.tr('order_status.cooking_now');
+          }
+          return context.tr('order_status.preparing');
+        case 3:
+          return context.tr('order_status.delivering');
+        case 4:
+          return context.tr('order_status.arrived');
+        default:
+          return context.tr('order.status.payment_verified');
+      }
+    }
+
     switch (_currentStatus) {
       case 1:
         return context.tr('order_status.checking_payment');
@@ -572,6 +670,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
         return context.tr('order_status.processing');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -642,15 +741,15 @@ class _OrderStatusPageState extends State<OrderStatusPage>
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                storeName,
+              child: VerifiedRestaurantNameRow(
+                name: storeName,
+                isVerified: state.isVerified,
                 style: AppFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Colors.black,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                badgeSize: MyTogetherVerifiedBadge.detailSize,
               ),
             ),
           ],
@@ -672,7 +771,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           _statusTitle(context),
                           key: ValueKey<int>(_currentStatus),
                           style: AppFonts.poppins(
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFFEF4444),
                           ),
@@ -681,30 +780,32 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           _statusTitle(context),
                           key: ValueKey<int>(_currentStatus),
                           style: AppFonts.poppins(
-                            fontSize: 28,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 if (_currentStatus != -1) ...[
                   if (!(state.isPickupFulfillment && state.isReadyForPickup)) ...[
                     if (state.hasPrepTimeEstimate)
                       GradientText(
                         '${context.tr('order_status.est_waiting_time')}: ${_getFakeEstTime(state.estimatedTime!, state.orderId)}',
                         style: AppFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       )
                     else
                       AnimatedDotsText(
                         baseText: state.isPickupFulfillment
                             ? context.tr('order_status.preparing')
-                            : context.tr('order_tracking.restaurant_reviewing'),
+                            : (_isVerifiedShop && !_isPaymentVerified)
+                                ? context.tr('order.status.waiting_payment')
+                                : context.tr('order_tracking.restaurant_reviewing'),
                         style: AppFonts.poppins(
-                          fontSize: 16,
+                          fontSize: 14,
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w600,
                         ),
@@ -1067,13 +1168,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -1120,17 +1222,24 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               const SizedBox(height: 16),
             ],
 
-            // Order Summary Card
+            // Mini Food Game Banner (for engaging user while order is preparing/delivering)
+            if (_currentStatus != -1 && _currentStatus < 4) ...[
+              const FoodGameBanner(),
+              const SizedBox(height: 16),
+            ],
+
+            // Order Summary Card (myshop profile top menu border style)
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -1147,30 +1256,47 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             Text(
                               context.tr('order_status.payment_method'),
                               style: AppFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.grey[600],
+                                fontSize: 13.5,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            Row(
-                              children: [
-                                Icon(
-                                  PhosphorIcons.qrCode,
-                                  size: 18,
-                                  color: const Color(0xFF1E3A8A),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                  width: 1,
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  context.tr('order_status.qr_promptpay'),
-                                  style: AppFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    PhosphorIcons.qrCode,
+                                    size: 15,
+                                    color: Color(0xFF1E3A8A),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    context.tr('order_status.qr_promptpay'),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -1179,8 +1305,9 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                   ? context.tr('cart.total_pay_now')
                                   : context.tr('cart.total'),
                               style: AppFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.grey[600],
+                                fontSize: 13.5,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             Row(
@@ -1188,44 +1315,69 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                 Text(
                                   (backendTotalAdjusted ? null : state.displayTotalAmount) ??
                                       total.toFormattedPrice(),
-                                  style: AppFonts.poppins(
+                                  style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+                                    color: const Color(0xFF0F172A),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
+                                    horizontal: 9,
+                                    vertical: 3.5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        (_backendStatus?.toUpperCase() ==
-                                                'PAID' ||
-                                            _currentStatus >= 2)
+                                    color: _isPaymentVerified
                                         ? const Color(0xFFDCFCE7)
                                         : const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    (_backendStatus?.toUpperCase() == 'PAID' ||
-                                            _currentStatus >= 2)
-                                        ? context.tr('order_status.paid')
-                                        : context.tr(
-                                            'order_status.waiting_payment',
-                                          ),
-                                    style: AppFonts.poppins(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          (_backendStatus?.toUpperCase() ==
-                                                  'PAID' ||
-                                              _currentStatus >= 2)
-                                          ? const Color(0xFF16A34A)
-                                          : const Color(0xFFD97706),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _isPaymentVerified
+                                          ? const Color(0xFFBBF7D0)
+                                          : const Color(0xFFFDE68A),
+                                      width: 1,
                                     ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _isPaymentVerified
+                                              ? const Color(0xFF16A34A)
+                                              : const Color(0xFFD97706),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        _isVerifiedShop
+                                            ? (_isPaymentVerified
+                                                ? context.tr(
+                                                    'order.status.payment_verified',
+                                                  )
+                                                : context.tr(
+                                                    'order.status.waiting_payment',
+                                                  ))
+                                            : ((_backendStatus?.toUpperCase() ==
+                                                        'PAID' ||
+                                                    _currentStatus >= 2)
+                                                ? context.tr('order_status.paid')
+                                                : context.tr(
+                                                    'order_status.waiting_payment',
+                                                  )),
+                                        style: AppFonts.poppins(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: _isPaymentVerified
+                                              ? const Color(0xFF15803D)
+                                              : const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -1235,7 +1387,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   Theme(
                     data: Theme.of(
                       context,
@@ -1244,74 +1396,84 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                       initiallyExpanded: false,
                       tilePadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 0,
+                        vertical: 2,
                       ),
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      iconColor: Colors.grey[600],
-                      collapsedIconColor: Colors.grey[600],
+                      iconColor: const Color(0xFF64748B),
+                      collapsedIconColor: const Color(0xFF64748B),
                       title: Row(
                         children: [
-                          Icon(
-                            PhosphorIcons.receipt,
-                            size: 20,
-                            color: Colors.grey[700],
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              PhosphorIcons.receipt,
+                              size: 17,
+                              color: Color(0xFF334155),
+                            ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Text(
                             context.tr('order_status.view_summary'),
                             style: AppFonts.poppins(
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[800],
+                              color: const Color(0xFF1E293B),
                             ),
                           ),
                         ],
                       ),
                       children: [
-                        const Divider(height: 16, color: Color(0xFFF3F4F6)),
+                        const Divider(height: 16, color: Color(0xFFF1F5F9)),
                         if (state.orderItems.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               context.tr('order_status.no_items'),
                               style: AppFonts.poppins(
-                                fontSize: 12,
-                                color: Colors.grey,
+                                fontSize: 13,
+                                color: const Color(0xFF94A3B8),
                               ),
                             ),
                           )
                         else
                           ...state.orderItems.map(
                             (item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: SizedBox(
-                                      width: 40,
-                                      height: 40,
+                                    child: Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: const Color(0xFFF1F5F9),
+                                          width: 1,
+                                        ),
+                                      ),
                                       child: CachedNetworkImage(
                                         fadeInDuration: Duration.zero,
                                         fadeOutDuration: Duration.zero,
                                         imageUrl: item.imagePath,
                                         fit: BoxFit.cover,
                                         placeholder: (context, url) =>
-                                            Container(
-                                              color: Colors.grey[100],
-                                              child: const Center(
-                                                child: CustomLoadingIndicator(
-                                                  size: 16,
-                                                ),
-                                              ),
+                                            const Center(
+                                              child: CustomLoadingIndicator(size: 14),
                                             ),
                                         errorWidget: (context, url, error) =>
-                                            Container(
-                                              color: Colors.grey[100],
-                                              child: const Icon(
-                                                Icons.restaurant,
-                                                size: 16,
-                                                color: Colors.grey,
+                                            const Center(
+                                              child: Icon(
+                                                PhosphorIcons.forkKnife,
+                                                size: 18,
+                                                color: Color(0xFF94A3B8),
                                               ),
                                             ),
                                       ),
@@ -1323,32 +1485,52 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          '${item.quantity}x ${item.title}',
-                                          style: AppFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black,
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: '${item.quantity}x ',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 13.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: item.title,
+                                                style: AppFonts.poppins(
+                                                  fontSize: 13.5,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: const Color(0xFF1E293B),
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        if (item.variantName != null)
+                                        if (item.variantName != null &&
+                                            item.variantName!.trim().isNotEmpty) ...[
+                                          const SizedBox(height: 2),
                                           Text(
                                             item.variantName!,
                                             style: AppFonts.poppins(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: const Color(0xFF64748B),
                                             ),
                                           ),
+                                        ],
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     (item.price * item.quantity)
                                         .toFormattedPrice(),
-                                    style: AppFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF0F172A),
                                     ),
                                   ),
                                 ],
@@ -1356,8 +1538,8 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             ),
                           ),
                         const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Divider(color: Color(0xFFF3F4F6)),
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                         ),
 
                         _buildSummaryRow(
@@ -1366,7 +1548,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                               widget.foodTotal.toFormattedPrice(),
                         ),
                         if (state.taxEnable) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           _buildSummaryRow(
                             context.tr('order_status.tax'),
                             state.displayTaxAmount ??
@@ -1374,7 +1556,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                         if (state.hasAppliedCoupon) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           OrderCouponDiscountSection(
                             couponName: state.couponName,
                             discountAmount: state.discountAmount,
@@ -1383,7 +1565,7 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                           ),
                         ],
                         if (state.hasTransactionDiscount) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           _buildSummaryRow(
                             context.tr('order_status.transaction_discount'),
                             '- ${state.displayTransactionDiscount ?? state.transactionDiscount.toFormattedPrice()}',
@@ -1394,16 +1576,39 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                             state.hasDeliveryFeeEstimate &&
                             !state.isAwaitingShopConfirmation &&
                             (!state.isFlexibleDelivery || showFlexibleDeliveryFee)) ...[
-                          const SizedBox(height: 8),
-                          _buildSummaryRow(
-                            context.tr('order_status.delivery_fee'),
-                            state.displayDeliveryFee ??
-                                state.deliveryFee!.toFormattedPrice(),
+                          const SizedBox(height: 4),
+                          Builder(
+                            builder: (context) {
+                              final isFree = (state.displayDeliveryFee?.toUpperCase() == 'FREE') ||
+                                  (state.deliveryFee == 0);
+                              return _buildSummaryRow(
+                                context.tr('order_status.delivery_fee'),
+                                isFree ? 'FREE' : (state.displayDeliveryFee ?? state.deliveryFee!.toFormattedPrice()),
+                                valueWidget: isFree
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFDCFCE7),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: const Color(0xFFBBF7D0), width: 1),
+                                        ),
+                                        child: Text(
+                                          'FREE',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFF16A34A),
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              );
+                            },
                           ),
                         ],
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Divider(color: Color(0xFFF3F4F6)),
+                          child: Divider(height: 1, thickness: 1.2, color: Color(0xFFE2E8F0)),
                         ),
                         _buildSummaryRow(
                           (state.usesPayNowTotal && !showFlexibleDeliveryFee)
@@ -1415,8 +1620,6 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                     total.toFormattedPrice()),
                           isBold: true,
                         ),
-
-                        // Flexible delivery note removed as requested
                       ],
                     ),
                   ),
@@ -1435,12 +1638,13 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -1532,14 +1736,14 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            storeName,
+                                          VerifiedRestaurantNameRow(
+                                            name: storeName,
+                                            isVerified: state.isVerified,
                                             style: AppFonts.poppins(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                            badgeSize: MyTogetherVerifiedBadge.cardSize,
                                           ),
                                           if (state.restaurantAddress != null &&
                                               state
@@ -1664,37 +1868,210 @@ class _OrderStatusPageState extends State<OrderStatusPage>
               ),
               const SizedBox(height: 12),
             ],
-            Row(
-              children: [
-                Expanded(
-                  child: ChatShakeAnimator(
-                    orderId: _currentOrderId,
-                    child: GestureDetector(
-                      onTap: () => _openChat(
-                        name: state.shopName ?? state.restaurantName ?? state.storeName ?? 'Restaurant',
-                        subtitle: context.tr('common.restaurant'),
-                        avatarUrl: state.logoPath ?? state.shopLogo,
-                      ),
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(24),
+            if (_currentStatus == 1 && (!_isVerifiedShop || !_isPaymentVerified)) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.38),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _openPaymentBottomSheet();
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    splashColor: Colors.white.withValues(alpha: 0.2),
+                    highlightColor: Colors.white.withValues(alpha: 0.1),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.28),
+                          width: 1.2,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Stack(
                           children: [
-                            ChatUnreadBadge(
-                              orderId: _currentOrderId,
-                              child: const Icon(PhosphorIcons.chatCircleTextFill, color: Color(0xFF1E293B), size: 20),
+                            // Ambient glowing background circles for visual depth
+                            Positioned(
+                              right: -15,
+                              top: -20,
+                              child: Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              context.tr('order_confirm.chat'),
-                              style: AppFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
+                            Positioned(
+                              left: 60,
+                              bottom: -25,
+                              child: Container(
+                                width: 65,
+                                height: 65,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                ),
+                              ),
+                            ),
+                            // Content
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Left Icon Badge with glassmorphic styling
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.22),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.35),
+                                        width: 1.2,
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        PhosphorIconsBold.qrCode,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Center Info (Title + Urgent Tag + Methods)
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                'ငွေပေးချေရန်',
+                                                style: AppFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: -0.2,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(alpha: 0.25),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                'PAY NOW',
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.6,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          'PromptPay • TrueMoney • Slip',
+                                          style: AppFonts.poppins(
+                                            color: Colors.white.withValues(alpha: 0.92),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Right Price Pill with modern circular arrow button
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.28),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          (state.totalAmount ??
+                                                  (widget.foodTotal +
+                                                      widget.deliveryFee))
+                                              .toFormattedPrice(),
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 18,
+                                          height: 18,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              color: AppColors.primary,
+                                              size: 10,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -1703,20 +2080,125 @@ class _OrderStatusPageState extends State<OrderStatusPage>
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () => _makeCall(state.shopPhone),
-                  child: Container(
-                    height: 48,
-                    width: 48,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF8FAFC),
-                      shape: BoxShape.circle,
+              ),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: ChatShakeAnimator(
+                    orderId: _currentOrderId,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                            spreadRadius: 0,
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF64748B).withValues(alpha: 0.04),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(24),
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _openChat(
+                              name: state.shopName ??
+                                  state.restaurantName ??
+                                  state.storeName ??
+                                  'Restaurant',
+                              subtitle: context.tr('common.restaurant'),
+                              avatarUrl: state.logoPath ?? state.shopLogo,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(24),
+                          splashColor: AppColors.primary.withValues(alpha: 0.1),
+                          highlightColor:
+                              AppColors.primary.withValues(alpha: 0.05),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ChatUnreadBadge(
+                                orderId: _currentOrderId,
+                                child: const Icon(
+                                  PhosphorIcons.chatCircleTextFill,
+                                  color: Color(0xFF1E293B),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                context.tr('order_confirm.chat'),
+                                style: AppFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      PhosphorIcons.phoneFill,
-                      color: Color(0xFF1E293B),
-                      size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFE2E8F0),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF64748B).withValues(alpha: 0.04),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _makeCall(state.shopPhone);
+                      },
+                      customBorder: const CircleBorder(),
+                      splashColor: AppColors.primary.withValues(alpha: 0.1),
+                      highlightColor: AppColors.primary.withValues(alpha: 0.05),
+                      child: const Center(
+                        child: Icon(
+                          PhosphorIcons.phoneFill,
+                          color: Color(0xFF1E293B),
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -2038,27 +2520,40 @@ class _OrderStatusPageState extends State<OrderStatusPage>
     String value, {
     bool isBold = false,
     Color? valueColor,
+    Widget? valueWidget,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppFonts.poppins(
-            fontSize: 14,
-            color: isBold ? Colors.black : Colors.grey[600],
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppFonts.poppins(
+              fontSize: isBold ? 14.5 : 13.5,
+              color: isBold ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: AppFonts.poppins(
-            fontSize: 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: valueColor ?? Colors.black,
-          ),
-        ),
-      ],
+          if (valueWidget != null)
+            valueWidget
+          else
+            Text(
+              value,
+              style: isBold
+                  ? GoogleFonts.poppins(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w800,
+                      color: valueColor ?? const Color(0xFF0F172A),
+                    )
+                  : GoogleFonts.poppins(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: valueColor ?? const Color(0xFF1E293B),
+                    ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -2067,12 +2562,22 @@ class _OrderStatusPageState extends State<OrderStatusPage>
       if (ActiveOrderState.instance.isReadyForPickup) {
         return context.tr('order_status.pickup_qr_subtitle');
       }
+      if (_isVerifiedShop && _currentStatus == 1) {
+        return _isPaymentVerified
+            ? context.tr('order.status.payment_verified')
+            : context.tr('order.status.waiting_payment');
+      }
       final key = switch (_currentStatus) {
         1 => 'order_status.checking_payment_shop',
         2 => _backendStatus?.toUpperCase() == 'COOKING' ? 'order_status.cooking_now_shop' : 'order_status.preparing_shop',
         _ => 'order_status.picked_up',
       };
       return context.trArgs(key, {'shop': storeName});
+    }
+    if (_isVerifiedShop && _currentStatus == 1) {
+      return _isPaymentVerified
+          ? context.tr('order.status.payment_verified')
+          : context.tr('order.status.waiting_payment');
     }
     final key = switch (_currentStatus) {
       1 => 'order_status.checking_payment_shop',

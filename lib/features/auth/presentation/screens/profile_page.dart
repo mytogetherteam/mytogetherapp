@@ -6,6 +6,8 @@ import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/features/auth/data/repositories/auth_repository.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
 import 'package:mytogetherapp/core/presentation/widgets/custom_loading_indicator.dart';
+import 'package:mytogetherapp/core/network/media_url.dart';
+import 'package:mytogetherapp/features/auth/data/auth_remote_data_source.dart';
 import 'package:mytogetherapp/features/main_navigation/presentation/screens/main_navigation_screen.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/account_settings_page.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/help_support_page.dart';
@@ -21,7 +23,6 @@ import 'package:mytogetherapp/features/home/presentation/screens/location_search
 import 'package:mytogetherapp/features/auth/presentation/screens/edit_profile_page.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
-import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/core/presentation/widgets/gradient_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -34,6 +35,8 @@ import '../../../cart/data/active_order_state.dart';
 import '../../../order/presentation/screens/order_history_page.dart';
 import 'package:mytogetherapp/features/social/presentation/screens/my_posts_page.dart';
 import 'auth_entry_page.dart';
+import 'payment_methods_page.dart';
+import '../../../cart/data/saved_card_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -55,15 +58,48 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     NavigationController.instance.currentIndex.addListener(_onTabChanged);
+    SavedCardService.instance.loadCards();
     _initAppVersion();
     _fetchBackgroundTheme();
     _loadReferralProgress();
+    _fetchUserProfile();
   }
 
   void _onTabChanged() {
     if (NavigationController.instance.currentIndex.value == 4) {
       _loadReferralProgress();
+      _fetchUserProfile();
+      SavedCardService.instance.loadCards();
+      if (mounted) setState(() {});
     }
+  }
+
+  DateTime? _lastProfileFetchTime;
+
+  Future<void> _fetchUserProfile({bool force = false}) async {
+    if (GuestAuthGuard.isGuest) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastProfileFetchTime != null &&
+        now.difference(_lastProfileFetchTime!) < const Duration(seconds: 30)) {
+      return;
+    }
+    _lastProfileFetchTime = now;
+    try {
+      final profile = await AuthRemoteDataSource().getUserProfile();
+      await AuthService().updateCurrentUser(profile);
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (kDebugMode) debugPrint('profile_page.dart: profile fetch error: $e');
+    }
+  }
+
+  Future<void> _refreshProfile() async {
+    await Future.wait([
+      _fetchUserProfile(force: true),
+      _loadReferralProgress(),
+      _fetchBackgroundTheme(),
+    ]);
   }
 
   Future<void> _loadReferralProgress() async {
@@ -110,9 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    return '${ApiClient.baseUrl}/$path';
+    return resolveMediaUrl(path);
   }
 
   @override
@@ -131,9 +165,12 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: Colors.grey[50],
       body: Stack(
         children: [
-          SingleChildScrollView(
-            controller: _scrollController,
-            child: Column(
+          RefreshIndicator(
+            onRefresh: _refreshProfile,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
               children: [
                 if (isGuest) ...[
                   _buildGuestHeader(context),
@@ -254,6 +291,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+          ),
       // Fixed Nav Header
       Positioned(
         top: 0,
@@ -441,7 +479,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     context,
                     MaterialPageRoute(builder: (_) => const EditProfilePage()),
                   );
-                  if (mounted) setState(() {});
+                  if (mounted) _fetchUserProfile(force: true);
                 },
               ),
             ),
@@ -455,7 +493,7 @@ class _ProfilePageState extends State<ProfilePage> {
               context,
               MaterialPageRoute(builder: (_) => const EditProfilePage()),
             );
-            if (mounted) setState(() {});
+            if (mounted) _fetchUserProfile(force: true);
           },
           child: Column(
             children: [
@@ -487,6 +525,15 @@ class _ProfilePageState extends State<ProfilePage> {
               context,
               MaterialPageRoute(builder: (_) => const AccountSettingsPage()),
             );
+            if (mounted) setState(() {});
+          },
+        ),
+        _buildOptionTile(
+          icon: PhosphorIcons.creditCard,
+          title: context.tr('profile.payment_methods'),
+          subtitle: context.tr('profile.payment_methods_sub'),
+          onTap: () async {
+            await PaymentMethodsPage.open(context);
             if (mounted) setState(() {});
           },
         ),
@@ -532,6 +579,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
+
+
 
   Widget _buildReferralTile() {
     final code = _referralStatus?.myCode;
@@ -862,7 +911,7 @@ class _ProfilePostsAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = imageUrl != null && imageUrl!.isNotEmpty;
+    final hasPhoto = imageUrl != null && imageUrl!.trim().isNotEmpty;
     return GestureDetector(
       onTap: onEditProfile,
       behavior: HitTestBehavior.opaque,
@@ -878,19 +927,38 @@ class _ProfilePostsAvatar extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: hasPhoto
-                    ? CachedNetworkImageProvider(imageUrl!)
-                    : null,
-                child: hasPhoto
-                    ? null
-                    : Icon(
-                        PhosphorIcons.userBold,
-                        size: 40,
-                        color: Colors.grey[400],
-                      ),
+              child: SizedBox(
+                width: 100,
+                height: 100,
+                child: ClipOval(
+                  child: hasPhoto
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: CustomLoadingIndicator(size: 20),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              PhosphorIcons.userBold,
+                              size: 40,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey[200],
+                          child: Icon(
+                            PhosphorIcons.userBold,
+                            size: 40,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                ),
               ),
             ),
             Positioned(

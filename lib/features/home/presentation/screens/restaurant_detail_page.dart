@@ -20,7 +20,6 @@ import '../../../wishlist/presentation/screens/wishlist_page.dart';
 import '../../data/ordered_before_store.dart';
 import '../../../food/data/order_again.dart';
 import '../../data/restaurant_data.dart';
-import '../widgets/ordered_before_label.dart';
 import '../widgets/last_order_strip.dart';
 import 'menu_detail_page.dart';
 import '../../data/models/menu_item_dto.dart';
@@ -190,6 +189,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     );
 
     final shopId = int.tryParse(widget.id) ?? 0;
+    OrderedBeforeStore.instance.ensureLoaded();
 
     // Keep the favorite heart in sync with the global wishlist source of truth
     // so it always matches the cards/wishlist tab, regardless of where the
@@ -1223,7 +1223,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
             // Floating Info Card
             AnimatedBuilder(
-              animation: _scrollController,
+              animation: Listenable.merge([
+                _scrollController,
+                OrderedBeforeStore.instance,
+              ]),
               builder: (context, child) {
                 double scrollOffset = 0;
                 if (_scrollController.hasClients) {
@@ -1412,26 +1415,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                           color: Colors.black,
                                         ),
                                       ),
-                                      ListenableBuilder(
-                                        listenable: OrderedBeforeStore.instance,
-                                        builder: (context, _) {
-                                          OrderedBeforeStore.instance
-                                              .ensureLoaded();
-                                          final shopId = int.tryParse(
-                                                _currentRestaurant?.id ?? '',
-                                              ) ??
-                                              0;
-                                          if (shopId <= 0 ||
-                                              !OrderedBeforeStore.instance
-                                                  .contains(shopId)) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return const Padding(
-                                            padding: EdgeInsets.only(top: 6),
-                                            child: OrderedBeforeLabel(),
-                                          );
-                                        },
-                                      ),
+                                      const SizedBox(height: 4),
                                       Wrap(
                                         crossAxisAlignment:
                                             WrapCrossAlignment.center,

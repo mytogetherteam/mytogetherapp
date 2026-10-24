@@ -337,6 +337,8 @@ class CartDto {
   }
 
   /// Stable English/default shop name used for cart store lookups.
+  final bool isVerified;
+
   String get shopNameKey => shopNameEn ?? _shopName ?? '';
 
   const CartDto({
@@ -346,6 +348,7 @@ class CartDto {
     this.shopNameMm,
     this.shopNameTh,
     this.shopImageUrl,
+    this.isVerified = false,
     required this.items,
     required this.subtotal,
     required this.deliveryFee,
@@ -364,6 +367,9 @@ class CartDto {
     final shopMap = data['shop'] is Map
         ? Map<String, dynamic>.from(data['shop'] as Map)
         : null;
+    final isVerified = (data['isVerified'] as bool?) ??
+        (shopMap?['isVerified'] as bool?) ??
+        false;
 
     return CartDto(
       shopId: data['shopId'] as int?,
@@ -372,6 +378,7 @@ class CartDto {
       shopNameMm: data['shopNameMm'] as String?,
       shopNameTh: data['shopNameTh'] as String?,
       shopImageUrl: _resolveShopImageUrl(data, shopMap),
+      isVerified: isVerified,
       items: itemsJson
           .map((e) => CartItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -416,6 +423,7 @@ class CartDto {
     'shopNameMm': shopNameMm,
     'shopNameTh': shopNameTh,
     'shopImageUrl': shopImageUrl,
+    'isVerified': isVerified,
     'items': items.map((i) => i.toJson()).toList(),
     'subtotal': subtotal,
     'deliveryFee': deliveryFee,

@@ -91,6 +91,7 @@ class CartStore {
   final String distance;
   final String time;
   final String? shopImageUrl;
+  final bool isVerified;
 
   String get name => LocaleController.instance.localizedOr(
         nameKey,
@@ -110,6 +111,7 @@ class CartStore {
     this.distance = '2 km',
     this.time = '20 Mins',
     this.shopImageUrl,
+    this.isVerified = false,
   });
 
   bool get isClosed => nameKey == 'Lotteria' || nameKey == 'Ice Berry'; // Mock data
@@ -220,6 +222,7 @@ class CartManager extends ChangeNotifier {
       nameTh: cart.shopNameTh,
       total: cart.total,
       shopImageUrl: shopImage.isEmpty ? null : shopImage,
+      isVerified: cart.isVerified,
       items: cart.items.map((item) {
         final image = FileUrlUtil.resolve(item.imageUrl);
         return CartItem(
@@ -264,6 +267,7 @@ class CartManager extends ChangeNotifier {
     String? variantNameMm,
     String? variantNameTh,
     List<String>? optionNames,
+    bool isVerified = false,
   }) async {
     if (!_isGuest) {
       final dto = await CartRepository.instance.addToCart(request);
@@ -303,6 +307,7 @@ class CartManager extends ChangeNotifier {
           shopNameEn: shopNameEn,
           shopNameMm: shopNameMm,
           shopNameTh: shopNameTh,
+          isVerified: isVerified,
           items: const [],
           subtotal: 0,
           deliveryFee: 0,
@@ -395,6 +400,7 @@ class CartManager extends ChangeNotifier {
       shopNameMm: cart.shopNameMm,
       shopNameTh: cart.shopNameTh,
       shopImageUrl: cart.shopImageUrl,
+      isVerified: cart.isVerified,
       items: items,
       subtotal: subtotal,
       deliveryFee: cart.deliveryFee,
@@ -412,6 +418,7 @@ class CartManager extends ChangeNotifier {
       shopNameMm: store.nameMm,
       shopNameTh: store.nameTh,
       shopImageUrl: store.shopImageUrl,
+      isVerified: store.isVerified,
       items: store.items
           .map(
             (item) => CartItemDto(
