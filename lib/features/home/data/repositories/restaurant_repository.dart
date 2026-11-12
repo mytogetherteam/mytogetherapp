@@ -203,6 +203,11 @@ class RestaurantRepository {
     try {
       List<Restaurant> results;
       SearchPageResult response;
+      final bool? deliveryEnabled = deliveryOnly
+          ? true
+          : visitOnly
+              ? false
+              : null;
 
       if (AuthService().isLoggedIn) {
         final hasSearch = search != null && search.trim().isNotEmpty;
@@ -222,6 +227,7 @@ class RestaurantRepository {
             radiusKm: radius,
             page: page + 1,
             size: size,
+            deliveryEnabled: deliveryEnabled,
           );
         }
         results = response.shops
@@ -234,6 +240,7 @@ class RestaurantRepository {
           radiusKm: radius,
           page: page + 1,
           size: size,
+          deliveryEnabled: deliveryEnabled,
         );
         results = response.shops
             .map((dto) => _mapShopWithDistance(dto.shop, lat: lat, lon: lon))

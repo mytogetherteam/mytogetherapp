@@ -117,13 +117,16 @@ class SearchRepository {
     );
   }
 
-  /// Nearby shops sorted by rating (no text query).
+  /// Nearby shops. Open shops come first, then the nearer shop.
+  /// [deliveryEnabled] asks the server for delivery (`true`) or Go & Eat
+  /// (`false`) before the page is cut. Null leaves both kinds in the page.
   Future<SearchPageResult> searchNearby({
     required double latitude,
     required double longitude,
     double? radiusKm,
     int page = 1,
     int size = 20,
+    bool? deliveryEnabled,
   }) async {
     final response = await _apiClient.dio.get(
       '${ApiClient.apiPrefix}/user/search/nearby',
@@ -133,6 +136,7 @@ class SearchRepository {
         'radiusKm': ?radiusKm,
         'page': page,
         'size': size,
+        'deliveryEnabled': ?deliveryEnabled,
       },
       options: _freshShopOptions,
     );
