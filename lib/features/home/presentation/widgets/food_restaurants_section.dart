@@ -54,23 +54,29 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
     });
   }
 
-  Future<List<Restaurant>> _loadRestaurants() async {
-    try {
-      final coords =
-          await UserLocationRepository.instance.resolveActiveCoordinates();
+  void _selectFilter(RestaurantOrderingFilter value) {
+    if (value == _filter) return;
+    setState(() => _filter = value);
+    _reloadRestaurants();
+  }
 
-      // Fetch unfiltered so we can split Delivery vs Go & Eat in the UI.
-      return await RestaurantRepository.instance
-          .getNearbyShops(
-            lat: coords.lat,
-            lon: coords.lon,
-            radius: 20.0,
-            size: 40,
-          )
-          .timeout(const Duration(seconds: 10));
-    } catch (e) {
-      return [];
-    }
+  Future<List<Restaurant>> _loadRestaurants() async {
+    final deliveryOnly = _filter == RestaurantOrderingFilter.delivery;
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+
+    // The server filters Delivery vs Go & Eat before it cuts the page,
+    // so the closest restaurant of that kind is in this list.
+    return RestaurantRepository.instance
+        .getNearbyShops(
+          lat: coords.lat,
+          lon: coords.lon,
+          radius: 20.0,
+          size: 40,
+          deliveryOnly: deliveryOnly,
+          visitOnly: !deliveryOnly,
+        )
+        .timeout(const Duration(seconds: 10));
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -109,10 +115,11 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton(context);
         }
+        if (snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
 
         final List<Restaurant> allRestaurants = snapshot.data ?? [];
-        if (allRestaurants.isEmpty) return const SizedBox.shrink();
-
         final displayRestaurants = _filtered(allRestaurants);
 
         return Column(
@@ -150,10 +157,7 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
             const SizedBox(height: 12),
             RestaurantOrderingFilterChips(
               selected: _filter,
-              onChanged: (value) {
-                if (value == _filter) return;
-                setState(() => _filter = value);
-              },
+              onChanged: _selectFilter,
               padding: const EdgeInsets.symmetric(horizontal: 20),
             ),
             const SizedBox(height: 16),
@@ -254,10 +258,10 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
           ),
         ),
         const SizedBox(height: 12),
-        const RestaurantOrderingFilterChips(
-          selected: RestaurantOrderingFilter.delivery,
-          onChanged: _noopFilter,
-          padding: EdgeInsets.symmetric(horizontal: 20),
+        RestaurantOrderingFilterChips(
+          selected: _filter,
+          onChanged: _selectFilter,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         const SizedBox(height: 16),
         ListView.builder(
@@ -286,6 +290,4 @@ class _FoodRestaurantsSectionState extends State<FoodRestaurantsSection>
       ],
     );
   }
-
-  static void _noopFilter(RestaurantOrderingFilter _) {}
 }

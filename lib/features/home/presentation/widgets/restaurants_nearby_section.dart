@@ -55,25 +55,31 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
     });
   }
 
-  Future<List<Restaurant>> _loadNearbyRestaurants() async {
-    try {
-      // Shared resolver keeps this in sync with the nearby map page and food
-      // search (saved active location → device GPS → default).
-      final coords =
-          await UserLocationRepository.instance.resolveActiveCoordinates();
+  void _selectFilter(RestaurantOrderingFilter value) {
+    if (value == _filter) return;
+    setState(() => _filter = value);
+    _reloadRestaurants();
+  }
 
-      // Fetch unfiltered so we can split Delivery vs Go & Eat in the UI.
-      return await RestaurantRepository.instance
-          .getNearbyShops(
-            lat: coords.lat,
-            lon: coords.lon,
-            radius: 5.0,
-            size: 30,
-          )
-          .timeout(const Duration(seconds: 10));
-    } catch (e) {
-      return [];
-    }
+  Future<List<Restaurant>> _loadNearbyRestaurants() async {
+    final deliveryOnly = _filter == RestaurantOrderingFilter.delivery;
+    // Shared resolver keeps this in sync with the nearby map page and food
+    // search (saved active location → device GPS → default).
+    final coords =
+        await UserLocationRepository.instance.resolveActiveCoordinates();
+
+    // The server filters Delivery vs Go & Eat before it cuts the page,
+    // so the closest restaurant of that kind is in this list.
+    return RestaurantRepository.instance
+        .getNearbyShops(
+          lat: coords.lat,
+          lon: coords.lon,
+          radius: 5.0,
+          size: 30,
+          deliveryOnly: deliveryOnly,
+          visitOnly: !deliveryOnly,
+        )
+        .timeout(const Duration(seconds: 10));
   }
 
   Future<void> _toggleFavorite(Restaurant restaurant) async {
@@ -120,14 +126,11 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildSkeleton(context);
         }
-
-        final List<Restaurant> allRestaurants = snapshot.data ?? [];
-
-        // If empty or error — show nothing (no hardcoded fallback)
-        if (allRestaurants.isEmpty) {
+        if (snapshot.hasError) {
           return const SizedBox.shrink();
         }
 
+        final List<Restaurant> allRestaurants = snapshot.data ?? [];
         final restaurants = _filtered(allRestaurants);
 
         return Column(
@@ -165,10 +168,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
             const SizedBox(height: 12),
             RestaurantOrderingFilterChips(
               selected: _filter,
-              onChanged: (value) {
-                if (value == _filter) return;
-                setState(() => _filter = value);
-              },
+              onChanged: _selectFilter,
             ),
             const SizedBox(height: 12),
             if (restaurants.isEmpty)
@@ -272,9 +272,9 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
           ),
         ),
         const SizedBox(height: 12),
-        const RestaurantOrderingFilterChips(
-          selected: RestaurantOrderingFilter.delivery,
-          onChanged: _noopFilter,
+        RestaurantOrderingFilterChips(
+          selected: _filter,
+          onChanged: _selectFilter,
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -307,8 +307,6 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
       ],
     );
   }
-
-  static void _noopFilter(RestaurantOrderingFilter _) {}
 
   Widget _shimmerBox({
     required double width,
