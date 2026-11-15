@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
+import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/presentation/utils/paginated_list_controller.dart';
 import 'package:mytogetherapp/core/presentation/widgets/pagination_list_footer.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
@@ -29,6 +31,7 @@ class _JobsListPageState extends State<JobsListPage> {
   Timer? _searchDebounce;
   JobType? _selectedJobType;
   String _searchQuery = '';
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -40,7 +43,16 @@ class _JobsListPageState extends State<JobsListPage> {
       fetchPage: _fetchPage,
     )..addListener(_onPaginationChanged);
     _pagination.attachScrollController(_scrollController);
+    _scrollController.addListener(_onScroll);
     _pagination.loadInitial();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final scrolled = _scrollController.position.pixels > 165;
+    if (scrolled != _isScrolled) {
+      setState(() => _isScrolled = scrolled);
+    }
   }
 
   void _onPaginationChanged() {
@@ -77,6 +89,7 @@ class _JobsListPageState extends State<JobsListPage> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _scrollController.removeListener(_onScroll);
     _searchController.dispose();
     _pagination
       ..removeListener(_onPaginationChanged)
@@ -85,233 +98,331 @@ class _JobsListPageState extends State<JobsListPage> {
     super.dispose();
   }
 
+  String _l(String en, String mm, String th) =>
+      LocaleController.instance.localized(en: en, mm: mm, th: th);
+
   @override
   Widget build(BuildContext context) {
     final jobs = _pagination.items;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12.0, top: 8.0, bottom: 8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(
-                PhosphorIconsRegular.arrowLeft,
-                color: Colors.black,
-                size: 20,
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        color: AppColors.primary,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    height: 220,
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/work.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (_isScrolled
+              ? SystemUiOverlayStyle.dark
+              : SystemUiOverlayStyle.light)
+          .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: _refresh,
+              edgeOffset: MediaQuery.of(context).padding.top + 40,
+              color: AppColors.primary,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildHeader(context),
                   ),
-                  Positioned(
-                    bottom: -24,
-                    left: 16,
-                    right: 16,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                  SliverToBoxAdapter(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                      child: Row(
+                        children: [
+                          _FilterChip(
+                            label: context.tr('jobs.filter_all'),
+                            selected: _selectedJobType == null,
+                            onTap: () => _onFilterChanged(null),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterChip(
+                            label: context.tr('jobs.full_time'),
+                            selected: _selectedJobType == JobType.fullTime,
+                            onTap: () => _onFilterChanged(JobType.fullTime),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterChip(
+                            label: context.tr('jobs.part_time'),
+                            selected: _selectedJobType == JobType.partTime,
+                            onTap: () => _onFilterChanged(JobType.partTime),
                           ),
                         ],
                       ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        style: AppFonts.poppins(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: context.tr('jobs.search_hint'),
-                          hintStyle: AppFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey.shade400,
-                          ),
-                          prefixIcon: Icon(
-                            PhosphorIconsRegular.magnifyingGlass,
-                            color: Colors.grey.shade400,
-                            size: 20,
-                          ),
-                          suffixIcon: ValueListenableBuilder<TextEditingValue>(
-                            valueListenable: _searchController,
-                            builder: (context, value, child) {
-                              if (value.text.isEmpty) {
-                                return const SizedBox.shrink();
-                              }
-                              return IconButton(
-                                icon: const Icon(PhosphorIconsRegular.x, size: 20),
-                                color: Colors.grey.shade400,
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _onSearchChanged('');
-                                },
-                              );
-                            },
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade100,
-                              width: 1,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade100,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: AppColors.primary.withValues(alpha: 0.5),
-                              width: 1,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                      ),
                     ),
                   ),
+                  if (_pagination.isInitialLoading)
+                    const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (jobs.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              PhosphorIconsRegular.briefcase,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr('jobs.empty'),
+                              style: AppFonts.poppins(
+                                fontSize: 15,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      sliver: SliverList.separated(
+                        itemCount:
+                            jobs.length + (_pagination.showFooter ? 1 : 0),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          if (index >= jobs.length) {
+                            return PaginationListFooter(
+                              isLoading: _pagination.isLoadingMore,
+                              showEndMessage: !_pagination.hasMore,
+                            );
+                          }
+                          _pagination.onItemVisible(index);
+                          final job = jobs[index];
+                          return JobCard(
+                            job: job,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      JobDetailPage(jobId: job.id),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
                 ],
               ),
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 40),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildFloatingTopBar(context),
             ),
-            SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  children: [
-                    _FilterChip(
-                      label: context.tr('jobs.filter_all'),
-                      selected: _selectedJobType == null,
-                      onTap: () => _onFilterChanged(null),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: context.tr('jobs.full_time'),
-                      selected: _selectedJobType == JobType.fullTime,
-                      onTap: () => _onFilterChanged(JobType.fullTime),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: context.tr('jobs.part_time'),
-                      selected: _selectedJobType == JobType.partTime,
-                      onTap: () => _onFilterChanged(JobType.partTime),
-                    ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingTopBar(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: EdgeInsets.only(top: top, left: 12, right: 16),
+      height: top + 56,
+      decoration: BoxDecoration(
+        color: _isScrolled ? Colors.white : Colors.transparent,
+        border: _isScrolled
+            ? Border(
+                bottom: BorderSide(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+              )
+            : null,
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _isScrolled
+                    ? Colors.transparent
+                    : Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                PhosphorIconsRegular.arrowLeft,
+                color: _isScrolled ? Colors.black : Colors.white,
+                size: 22,
+              ),
+            ),
+          ),
+          Expanded(
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: _isScrolled ? 1.0 : 0.0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  _l(
+                    'Jobs in Thailand',
+                    'ထိုင်းနိုင်ငံ အလုပ်အကိုင်များ',
+                    'งานในประเทศไทย',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final headerHeight = (isIOS ? 255.0 : 240.0) + top;
+
+    return SizedBox(
+      width: double.infinity,
+      height: headerHeight,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/work.png',
+            width: double.infinity,
+            height: headerHeight,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.55, 1.0],
+                colors: [
+                  Colors.black.withValues(alpha: 0.30),
+                  Colors.black.withValues(alpha: 0.12),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 115,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.58, 1.0],
+                  colors: [
+                    Colors.white.withValues(alpha: 0.0),
+                    const Color(0xFFF9FAFB).withValues(alpha: 0.78),
+                    const Color(0xFFF9FAFB),
                   ],
                 ),
               ),
             ),
-            if (_pagination.isInitialLoading)
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (jobs.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        PhosphorIconsRegular.briefcase,
-                        size: 48,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        context.tr('jobs.empty'),
-                        style: AppFonts.poppins(
-                          fontSize: 15,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                sliver: SliverList.separated(
-                  itemCount: jobs.length + (_pagination.showFooter ? 1 : 0),
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    if (index >= jobs.length) {
-                      return PaginationListFooter(
-                        isLoading: _pagination.isLoadingMore,
-                        showEndMessage: !_pagination.hasMore,
-                      );
-                    }
-                    _pagination.onItemVisible(index);
-                    final job = jobs[index];
-                    return JobCard(
-                      job: job,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => JobDetailPage(jobId: job.id),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, top + 56, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Spacer(),
+                _buildSearch(context),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearch(BuildContext context) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            PhosphorIconsRegular.magnifyingGlass,
+            color: Colors.grey.shade500,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              style: AppFonts.poppins(
+                color: const Color(0xFF1E293B),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
               ),
-          ],
-        ),
+              decoration: InputDecoration(
+                hintText: context.tr('jobs.search_hint'),
+                hintStyle: AppFonts.poppins(
+                  color: const Color(0xFF64748B),
+                  fontSize: 13,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _searchController,
+            builder: (context, value, child) {
+              if (value.text.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return GestureDetector(
+                onTap: () {
+                  _searchController.clear();
+                  _onSearchChanged('');
+                },
+                child: const Icon(
+                  PhosphorIconsFill.xCircle,
+                  color: Color(0xFF94A3B8),
+                  size: 18,
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

@@ -73,7 +73,12 @@ class _AppState extends State<App> {
                   textDirection: TextDirection.ltr,
                   children: [
                     child ?? const SizedBox.shrink(),
-                    const FloatingCallBanner(),
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: FloatingCallBanner(),
+                    ),
                     ValueListenableBuilder<bool>(
                       valueListenable: FloatingChatHead.isHiddenNotifier,
                       builder: (context, isHidden, child) {

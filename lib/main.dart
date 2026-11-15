@@ -97,7 +97,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           subtitle: 'Missed call from shop',
           callbackText: 'Call back',
         ),
-        extra: <String, dynamic>{},
+        extra: <String, dynamic>{
+          'callId': callId,
+          'callerName': callerName,
+          'direction': 'shop-to-user',
+        },
         headers: <String, dynamic>{},
         android: const AndroidParams(
           isCustomNotification: true,
@@ -115,7 +119,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           supportsVideo: false,
           maximumCallGroups: 2,
           maximumCallsPerCallGroup: 1,
-          audioSessionMode: 'default',
+          audioSessionMode: 'voiceChat',
           audioSessionActive: true,
           audioSessionPreferredSampleRate: 44100.0,
           audioSessionPreferredIOBufferDuration: 0.005,
@@ -129,7 +133,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       await FlutterCallkitIncoming.showCallkitIncoming(callKitParams);
     }
     return;
-  } else if (type == 'CALL_END' || type == 'CALL_TIMEOUT') {
+  } else if (type == 'CALL_END' ||
+      type == 'CALL_TIMEOUT' ||
+      type == 'CALL_ANSWERED_ELSEWHERE') {
     final callId = data['callId']?.toString() ?? '';
     if (callId.isNotEmpty) {
       await FlutterCallkitIncoming.endCall(callId);
@@ -272,7 +278,7 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  GoogleFonts.config.allowRuntimeFetching = false;
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   // ── Image cache optimisation ─────────────────────────────────────────────
   // Larger than Flutter's tiny default (100 images / 100 MB) so scrolling lists

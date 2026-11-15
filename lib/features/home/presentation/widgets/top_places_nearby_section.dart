@@ -46,6 +46,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
         size: 10,
         latitude: coords.lat,
         longitude: coords.lon,
+        random: true,
       );
       if (mounted) {
         final repo = WishlistRepository.instance;
@@ -109,7 +110,7 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
 
     return Column(
       children: [
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -161,6 +162,8 @@ class _TopPlacesNearbySectionState extends State<TopPlacesNearbySection>
                     category: place.locationName,
                     distance: place.formattedDistance,
                     imagePath: image,
+                    primaryActivity: place.primaryActivity,
+                    startingPrice: place.startingPrice,
                     placeId: place.id,
                     isFavorite: place.isFavorite,
                     onFavoriteToggle: () => _toggleFavorite(place),

@@ -99,6 +99,7 @@ class _PlacesListPageState extends State<PlacesListPage> {
       latitude: lat,
       longitude: lon,
       activity: _selectedActivity == "ALL" ? null : _selectedActivity,
+      random: true,
     );
     final repo = WishlistRepository.instance;
     final items = feed.items

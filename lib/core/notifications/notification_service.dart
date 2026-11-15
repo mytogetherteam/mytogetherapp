@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
+import '../network/websocket_service.dart';
 import '../auth/auth_service.dart';
 import '../auth/order_ownership.dart';
+import '../../features/call/data/call_session.dart';
 import '../../app.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/screens/notifications_page.dart';
@@ -15,6 +18,7 @@ import '../../features/announcements/data/models/announcement_model.dart';
 import '../../features/announcements/presentation/announcement_presenter.dart';
 import '../../features/cart/data/active_order_state.dart';
 import 'package:mytogetherapp/features/chat/presentation/screens/chat_page.dart';
+import 'package:mytogetherapp/features/chat/presentation/widgets/in_app_chat_banner.dart';
 import 'package:mytogetherapp/features/social/presentation/screens/shared_post_page.dart';
 
 class NotificationService {
@@ -35,6 +39,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   String? _registeredFcmToken;
+  String? _registeredVoipToken;
   bool _isInitialized = false;
 
   Future<void> initialize() async {
@@ -153,11 +158,24 @@ class NotificationService {
 
     // Permissions are now requested via MainNavigationScreen rationale modal
     try {
+      // In-app chat banner listener for realtime WebSocket events
+      InAppChatBanner.init();
+
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String? type = _resolveNotificationType(message.data);
 
-      if (type == 'CALL_INCOMING') return; // Handled by WebSocket in foreground
+      if (type == 'CALL_INCOMING') {
+        if (!WebSocketService().isConnected) {
+          unawaited(CallSession().handleIncomingFromPush(message.data));
+        }
+        return; // Otherwise handled by WebSocket in foreground
+      }
+      if (type == 'CALL_END' ||
+          type == 'CALL_TIMEOUT' ||
+          type == 'CALL_ANSWERED_ELSEWHERE') {
+        return;
+      }
 
       // 0. Admin broadcast/announcement: pop the modal globally (any screen)
       // and bump the badge. Handled here so we don't also show a banner.
@@ -198,6 +216,10 @@ class NotificationService {
       // We manual handle it here for consistency.
       if (type == 'SILENT_SYNC') {
         cancelAllNotifications();
+      } else if (_isChatNotification(message.data, type)) {
+        // Foreground in-app chat: show top Messenger-style floating widget ("not from noti")
+        NotificationRepository().incrementCount();
+        InAppChatBanner.showFromRemoteMessage(message);
       } else if (message.notification != null) {
         NotificationRepository().incrementCount();
         showLocalNotification(message);
@@ -286,24 +308,44 @@ class NotificationService {
     _registerDeviceInBackground();
   }
 
-  /// Removes the current FCM token from the backend (call before logout).
+  /// Removes the current FCM and iOS PushKit VoIP tokens from the backend (call before logout).
   Future<void> unregisterDevice() async {
     try {
       final token = _registeredFcmToken ??
           await FirebaseMessaging.instance
               .getToken()
               .timeout(const Duration(seconds: 5));
-      if (token == null || token.isEmpty) return;
-
-      await ApiClient().dio.delete(
-        '${ApiClient.apiPrefix}/user/device-tokens',
-        data: {'token': token},
-      );
-      if (_registeredFcmToken == token) {
-        _registeredFcmToken = null;
+      if (token != null && token.isNotEmpty) {
+        await ApiClient().dio.delete(
+          '${ApiClient.apiPrefix}/user/device-tokens',
+          data: {'token': token},
+        );
+        if (_registeredFcmToken == token) {
+          _registeredFcmToken = null;
+        }
       }
     } catch (e) {
       if (kDebugMode) debugPrint('notification_service.dart: ignored error: $e');
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        final voipToken = _registeredVoipToken ??
+            (await FlutterCallkitIncoming.getDevicePushTokenVoIP())
+                ?.toString()
+                .trim();
+        if (voipToken != null && voipToken.isNotEmpty) {
+          await ApiClient().dio.delete(
+            '${ApiClient.apiPrefix}/user/device-tokens',
+            data: {'token': voipToken},
+          );
+          if (_registeredVoipToken == voipToken) {
+            _registeredVoipToken = null;
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('notification_service.dart: ignored voip unregister error: $e');
+      }
     }
   }
 
@@ -315,6 +357,33 @@ class NotificationService {
       }
     } catch (e) {
       // Ignore token retrieval or registration errors
+    }
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      await registerVoipToken();
+    }
+  }
+
+  /// Registers the iOS PushKit VoIP token (`platform: 'ios_voip'`) so the backend
+  /// can wake the app directly into CallKit when terminated.
+  Future<void> registerVoipToken([String? tokenOverride]) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (!AuthService().isLoggedIn) return;
+    try {
+      final raw = tokenOverride ??
+          (await FlutterCallkitIncoming.getDevicePushTokenVoIP())?.toString();
+      final voipToken = raw?.trim() ?? '';
+      if (voipToken.isEmpty) return;
+
+      await ApiClient().dio.post(
+        '${ApiClient.apiPrefix}/user/device-tokens',
+        data: {
+          'token': voipToken,
+          'platform': 'ios_voip',
+        },
+      );
+      _registeredVoipToken = voipToken;
+    } catch (e) {
+      if (kDebugMode) debugPrint('notification_service.dart: ignored voip register error: $e');
     }
   }
 
@@ -412,6 +481,47 @@ class NotificationService {
     );
   }
 
+  /// Triggers a high-priority local notification when the delivery rider is nearby (< 3 mins).
+  Future<void> showRiderNearbyNotification({
+    required int orderId,
+    required String title,
+    required String body,
+  }) async {
+    if (kIsWeb) return;
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'order_status_channel_v1',
+        'Order Status Updates',
+        channelDescription: 'Notifications for order updates and rider arrival',
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+      );
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+      await _localNotifications.show(
+        id: (orderId > 0 ? (orderId % 100000) : 777),
+        title: title,
+        body: body,
+        notificationDetails: platformDetails,
+        payload: json.encode({
+          'orderId': orderId,
+          'type': 'RIDER_NEARBY',
+          'title': title,
+        }),
+      );
+    } catch (_) {}
+  }
+
   Future<void> cancelAllNotifications() async {
     try {
       await _localNotifications.cancelAll();
@@ -478,6 +588,19 @@ class NotificationService {
   void _handleNotificationClick(RemoteMessage? message) {
     final data = message?.data ?? const <String, dynamic>{};
     final String? type = _resolveNotificationType(data);
+
+    if (message != null && type == 'CALL_INCOMING') {
+      _navigateWhenReady((_) {
+        unawaited(CallSession().handleIncomingFromPush(data, openScreen: true));
+      });
+      return;
+    }
+    if (message != null &&
+        (type == 'CALL_END' ||
+            type == 'CALL_TIMEOUT' ||
+            type == 'CALL_ANSWERED_ELSEWHERE')) {
+      return;
+    }
 
     // Tapping a broadcast push (from background/terminated) opens the modal.
     if (message != null && type == 'BROADCAST') {

@@ -29,6 +29,7 @@ class PlacesRepository {
     double? latitude,
     double? longitude,
     double? radiusKm,
+    bool random = false,
   }) async {
     final response = await _dio.get(
       '${ApiClient.apiPrefix}/user/places',
@@ -40,6 +41,8 @@ class PlacesRepository {
         'latitude': ?latitude,
         'longitude': ?longitude,
         'radiusKm': ?radiusKm,
+        if (random) 'random': 'true',
+        if (random) '_t': DateTime.now().millisecondsSinceEpoch,
       },
     );
     final items = ApiResponseUtils.parseDataList(

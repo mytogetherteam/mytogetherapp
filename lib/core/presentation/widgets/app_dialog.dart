@@ -199,6 +199,8 @@ class AppDialog {
     BuildContext context,
     String message, {
     bool isError = false,
+    Gradient? gradient,
+    IconData? icon,
     String? actionLabel,
     VoidCallback? onAction,
     Duration duration = const Duration(seconds: 3),
@@ -215,6 +217,8 @@ class AppDialog {
         builder: (ctx) => _ToastOverlayWidget(
           message: message,
           isError: isError,
+          gradient: gradient,
+          icon: icon,
           actionLabel: actionLabel,
           onAction: onAction,
           onDismiss: () {
@@ -248,13 +252,15 @@ class AppDialog {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: isError
-                ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)])
-                : AppColors.primaryGradient,
+            gradient: gradient ??
+                (isError
+                    ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)])
+                    : AppColors.primaryGradient),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: (isError ? const Color(0xFFDC2626) : AppColors.primary)
+                    .withValues(alpha: 0.35),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
@@ -263,7 +269,8 @@ class AppDialog {
           child: Row(
             children: [
               Icon(
-                isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                icon ??
+                    (isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded),
                 color: Colors.white,
                 size: 20,
               ),
@@ -431,6 +438,8 @@ class AppDialog {
 class _ToastOverlayWidget extends StatefulWidget {
   final String message;
   final bool isError;
+  final Gradient? gradient;
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
   final VoidCallback onDismiss;
@@ -438,6 +447,8 @@ class _ToastOverlayWidget extends StatefulWidget {
   const _ToastOverlayWidget({
     required this.message,
     required this.isError,
+    this.gradient,
+    this.icon,
     this.actionLabel,
     this.onAction,
     required this.onDismiss,
@@ -510,11 +521,12 @@ class _ToastOverlayWidgetState extends State<_ToastOverlayWidget>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      gradient: widget.isError
-                          ? const LinearGradient(
-                              colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                            )
-                          : AppColors.primaryGradient,
+                      gradient: widget.gradient ??
+                          (widget.isError
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                                )
+                              : AppColors.primaryGradient),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -529,9 +541,10 @@ class _ToastOverlayWidgetState extends State<_ToastOverlayWidget>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          widget.isError
-                              ? Icons.error_outline_rounded
-                              : Icons.check_circle_outline_rounded,
+                          widget.icon ??
+                              (widget.isError
+                                  ? Icons.error_outline_rounded
+                                  : Icons.check_circle_outline_rounded),
                           color: Colors.white,
                           size: 20,
                         ),

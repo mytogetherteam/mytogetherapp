@@ -1,13 +1,14 @@
 /// Distance-based delivery fee estimate shared by checkout and tracking.
 ///
-/// Min ≈ Bolt-style (`15 + 8.5×km`), max ≈ Grab-style (`35 + 7.2×km`).
+/// Standard Bangkok Rider Market Rate:
+/// Min ≈ Eco-rate (`20 + 8.0×km`), max ≈ Standard-rate (`28 + 9.2×km`).
 class DeliveryFeeEstimate {
   DeliveryFeeEstimate._();
 
-  static const double baseMin = 15.0;
-  static const double perKmMin = 8.5;
-  static const double baseMax = 35.0;
-  static const double perKmMax = 7.2;
+  static const double baseMin = 20.0;
+  static const double perKmMin = 8.0;
+  static const double baseMax = 28.0;
+  static const double perKmMax = 9.2;
   static const double unrealKmCap = 100.0;
   static const double unrealKmFallback = 5.0;
 
@@ -56,9 +57,11 @@ class DeliveryFeeEstimate {
     final min = minFee(km);
     final max = maxFee(km);
     if (min <= 0 && max <= 0) return '฿ 0';
-    if (min == max) return '฿ ${min.toStringAsFixed(0)}';
     final lo = min < max ? min : max;
     final hi = min > max ? min : max;
+    if (lo == hi) {
+      return '฿ ${lo.toStringAsFixed(0)} - ฿ ${(lo + 15).toStringAsFixed(0)}';
+    }
     return '฿ ${lo.toStringAsFixed(0)} - ฿ ${hi.toStringAsFixed(0)}';
   }
 }

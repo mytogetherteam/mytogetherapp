@@ -30,11 +30,17 @@ class MainActivity : FlutterActivity() {
             result.success(true)
         }
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.mytogether/active_call").setMethodCallHandler { call, result ->
+        val activeCallChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.mytogether/active_call")
+        ActiveCallService.onEndCallFromNotification = {
+            runOnUiThread {
+                activeCallChannel.invokeMethod("endCallFromNotification", null)
+            }
+        }
+        activeCallChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "start" -> {
                     val callerName = call.argument<String>("callerName") ?: "Ongoing Call"
-                    val baseTime   = call.argument<Long>("baseTime") ?: 0L
+                    val baseTime   = call.argument<Number>("baseTime")?.toLong() ?: 0L
                     val intent = android.content.Intent(this, ActiveCallService::class.java).apply {
                         putExtra("callerName", callerName)
                         putExtra("baseTime",   baseTime)
@@ -49,7 +55,7 @@ class MainActivity : FlutterActivity() {
                 "update" -> {
                     // Refresh notification with updated caller name (e.g. after call is answered)
                     val callerName = call.argument<String>("callerName") ?: "Ongoing Call"
-                    val baseTime   = call.argument<Long>("baseTime") ?: 0L
+                    val baseTime   = call.argument<Number>("baseTime")?.toLong() ?: 0L
                     val intent = android.content.Intent(this, ActiveCallService::class.java).apply {
                         putExtra("callerName", callerName)
                         putExtra("baseTime",   baseTime)
@@ -69,5 +75,10 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onDestroy() {
+        ActiveCallService.onEndCallFromNotification = null
+        super.onDestroy()
     }
 }

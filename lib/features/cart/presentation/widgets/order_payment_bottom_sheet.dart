@@ -94,8 +94,8 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
   @override
   void initState() {
     super.initState();
-    // Option 2: Orders under ฿20 cannot use Omise, default to slip transfer
-    if (_isUnderMinimum || widget.order.isSlipRequested) {
+    // Unverified shops or orders under ฿20 must use the original manual slip flow
+    if (!_isVerifiedShop || _isUnderMinimum || widget.order.isSlipRequested) {
       _forceSlip = true;
     }
     _fetchBankDetailsIfNeeded();
@@ -119,7 +119,9 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
 
   Future<void> _fetchBankDetailsIfNeeded() async {
     if (widget.order.paymentAccountNumber != null &&
-        widget.order.paymentAccountNumber!.trim().isNotEmpty) {
+        widget.order.paymentAccountNumber!.trim().isNotEmpty &&
+        widget.order.shopPaymentQrUrl != null &&
+        widget.order.shopPaymentQrUrl!.trim().isNotEmpty) {
       return;
     }
 
@@ -145,16 +147,16 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
                 paymentMethod['name'] ??
                 paymentMethod['accountHolderName'])
             ?.toString();
-        final qrUrl = (paymentMethod['qr'] ??
-                paymentMethod['qrImageUrl'] ??
-                paymentMethod['iconUrl'] ??
-                paymentMethod['image'])
+        final qrUrl = (paymentMethod['qr'] ?? paymentMethod['qrImageUrl'])
+            ?.toString();
+        final iconUrl = (paymentMethod['iconUrl'] ?? paymentMethod['image'])
             ?.toString();
 
         ActiveOrderState.instance.updatePaymentMethodDetails(
           accountNumber: accNumber,
           accountName: accName,
-          imageUrl: qrUrl != null ? FileUrlUtil.resolve(qrUrl) : null,
+          qrUrl: qrUrl != null && qrUrl.isNotEmpty ? FileUrlUtil.resolve(qrUrl) : null,
+          imageUrl: iconUrl != null && iconUrl.isNotEmpty ? FileUrlUtil.resolve(iconUrl) : null,
           orderId: widget.order.orderId,
         );
       }
@@ -300,7 +302,7 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
                   _buildSuccessState()
                 else
                   Flexible(
-                    child: _forceSlip
+                    child: (_forceSlip || !_isVerifiedShop)
                         ? _buildManualSlipView()
                         : OmisePaymentSection(
                             order: widget.order,
@@ -308,11 +310,9 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
                             initialMethod:
                                 widget.order.preferredOmiseMethod ?? 'PROMPTPAY',
                             onPaymentCompleted: _triggerSuccessCelebration,
-                            onFallbackToSlip: _isVerifiedShop
-                                ? null
-                                : () {
-                                    setState(() => _forceSlip = true);
-                                  },
+                            onFallbackToSlip: () {
+                              setState(() => _forceSlip = true);
+                            },
                           ),
                   ),
               ],
@@ -451,7 +451,7 @@ class _OrderPaymentBottomSheetState extends State<OrderPaymentBottomSheet> {
                     ),
                   ],
                 ),
-                if (!_isUnderMinimum)
+                if (!_isUnderMinimum && _isVerifiedShop)
                   OutlinedButton.icon(
                     onPressed: () => setState(() => _forceSlip = false),
                     icon: const Icon(PhosphorIconsBold.qrCode, size: 14),

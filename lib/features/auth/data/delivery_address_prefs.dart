@@ -23,10 +23,23 @@ class DeliveryAddressPrefs {
   static bool hasSavedAddress(Iterable<UserLocationModel> locations) =>
       locations.any((l) => l.id > 0);
 
-  /// Signed-in users with no saved backend address must add one before delivery.
+  /// Signed-in users with no saved backend address and no current GPS location must add one before delivery.
   static Future<bool> requiresForcedSetup() async {
     if (GuestAuthGuard.isGuest) return false;
     if (await hasCompletedSetup()) return false;
+
+    // If active location already has valid coordinates and an address (e.g. current live location),
+    // do not force setup.
+    final active = UserLocationRepository.instance.activeLocation;
+    if (active != null &&
+        active.latitude != null &&
+        active.longitude != null &&
+        active.latitude != 0 &&
+        active.longitude != 0 &&
+        (active.streetAddress?.trim().isNotEmpty ?? false)) {
+      await setCompletedSetup(true);
+      return false;
+    }
 
     final locations =
         await UserLocationRepository.instance.getRawLocations();

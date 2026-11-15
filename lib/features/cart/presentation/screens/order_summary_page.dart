@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pinput/pinput.dart';
+import '../../../../core/utils/firebase_error_handler.dart';
 import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/localization/locale_controller.dart';
 import 'package:mytogetherapp/core/theme/app_fonts.dart';
@@ -21,6 +25,7 @@ import '../../../../core/utils/order_tax.dart';
 import '../../../../core/utils/delivery_fee_estimate.dart';
 import '../../../home/data/new_user_free_delivery.dart';
 import '../../../../core/presentation/widgets/global_modal.dart';
+import '../../../../core/presentation/widgets/animated_dots_text.dart';
 import '../../../home/presentation/widgets/location_skeleton_loader.dart';
 import '../widgets/confirm_remove_modal.dart';
 import 'package:dio/dio.dart';
@@ -39,6 +44,7 @@ import '../../../../core/auth/user_model.dart';
 import '../../../home/data/models/shop_dto.dart' show ShopPaymentTypeDto;
 import '../../../auth/data/delivery_address_prefs.dart';
 import '../../../auth/data/models/user_location_model.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/data/repositories/user_location_repository.dart';
 import '../../../auth/data/session_location_store.dart';
 import '../../../home/presentation/screens/location_picker_page.dart';
@@ -47,6 +53,7 @@ import '../../../../core/presentation/widgets/custom_loading_indicator.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/location/geo_distance.dart';
+import '../../../../core/location/location_search_service.dart';
 import '../../../../core/presentation/widgets/menu_image_placeholder.dart';
 import '../../../home/data/shop_storage.dart';
 
@@ -83,12 +90,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   bool _forcedAddressFlowOpen = false;
   double _draftDistanceKm = 0.0;
   double _draftDeliveryFee = 0.0;
+  double? _exactQuotedFee;
+  bool _isFetchingQuotation = false;
   /// Fallback until GET /delivery-range returns. 30 km and farther is blocked.
   bool _deliveryLimitEnabled = false;
   double _maxDeliveryKm = 30;
   double _farWarningKm = GeoDistance.distanceConfirmThresholdKm;
   /// Grab-style free delivery — set from cache ASAP, then confirmed by shop API.
   bool _freeDeliveryActive = false;
+  bool _isAppBarScrolled = false;
 
   @override
   void initState() {
@@ -165,6 +175,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         _freeDeliveryActive = shop.shopPromoFreeDelivery;
       });
       _preFetchRoute();
+      _fetchDeliveryQuotation();
     } catch (_) {
       // A saved Free flag is not safe once the shop response failed.
       if (!mounted) return;
@@ -320,6 +331,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     return rounded.toStringAsFixed(1);
   }
 
+  String _formatEstimatedDuration(double km) {
+    if (km <= 0) return '20-30 min';
+    final minMins = ((15 + km * 2.0) / 5).round() * 5;
+    final maxMins = minMins + 10;
+    final unitMin = context.trArgs('time.duration_m', {'m': ''}).trim();
+    if (maxMins < 60) {
+      return '$minMins-$maxMins $unitMin';
+    }
+    final minDuration = LocaleController.instance.countdown(Duration(minutes: minMins));
+    final maxDuration = LocaleController.instance.countdown(Duration(minutes: maxMins));
+    return '$minDuration - $maxDuration';
+  }
+
   Future<void> _loadDeliveryRange() async {
     try {
       final response = await ApiClient().dio.get(
@@ -354,11 +378,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
     if (!mounted) return false;
     final distanceStr = km.toStringAsFixed(1);
+    final durationStr = _formatEstimatedDuration(km);
     final result = await GlobalModal.show<bool>(
       context: context,
       child: _FarDeliveryModal(
         distanceStr: distanceStr,
         limitStr: _formatKm(_farWarningKm),
+        durationStr: durationStr,
       ),
     );
     return result == true;
@@ -432,12 +458,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         return;
       }
     }
+    final nonCodActive = active.where((t) => !t.isCashOnDelivery).toList();
     final stillValid =
-        active.any((t) => t.paymentMethodId == _selectedPaymentMethodId);
+        nonCodActive.any((t) => t.paymentMethodId == _selectedPaymentMethodId);
     if (!stillValid) {
-      _selectedPaymentMethodId = active.isNotEmpty
-          ? active.first.paymentMethodId
-          : null;
+      _selectedPaymentMethodId = nonCodActive.isNotEmpty
+          ? nonCodActive.first.paymentMethodId
+          : (active.isNotEmpty ? active.first.paymentMethodId : null);
     }
   }
 
@@ -456,15 +483,23 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     _loadPrimaryLocation(forceRefresh: true);
   }
 
-  bool _hasSavedDeliveryAddress() {
+  /// Returns true when a delivery location with coordinates and address is selected.
+  /// Allows ordering with current location (id: -1) or a picked location without
+  /// requiring it to be pre-saved to the user's 3-address profile (id > 0).
+  bool _hasValidDeliveryAddress() {
     final loc = _primaryLocation;
-    return loc != null &&
-        loc.id > 0 &&
-        (loc.streetAddress?.trim().isNotEmpty ?? false);
+    if (loc == null) return false;
+    final hasCoords = loc.latitude != null &&
+        loc.longitude != null &&
+        loc.latitude != 0 &&
+        loc.longitude != 0;
+    final hasAddress = (loc.streetAddress?.trim().isNotEmpty ?? false);
+    return hasCoords && hasAddress;
   }
 
   Future<void> _ensureDeliveryAddressIfNeeded() async {
     if (!_isDelivery || GuestAuthGuard.isGuest || !mounted) return;
+    if (_hasValidDeliveryAddress()) return;
     if (_forcedAddressFlowOpen) return;
     if (!await DeliveryAddressPrefs.requiresForcedSetup()) return;
     await _openForcedAddressSetup();
@@ -488,19 +523,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     }
   }
 
-  Future<bool> _ensureSavedDeliveryAddressForOrder() async {
+  Future<bool> _ensureValidDeliveryAddressForOrder() async {
     if (!_isDelivery) return true;
-    if (_hasSavedDeliveryAddress()) {
-      if (await DeliveryAddressPrefs.requiresForcedSetup()) {
-        await DeliveryAddressPrefs.setCompletedSetup(true);
-      }
+    if (_hasValidDeliveryAddress()) {
+      await DeliveryAddressPrefs.setCompletedSetup(true);
       return true;
     }
     if (await DeliveryAddressPrefs.requiresForcedSetup()) {
       await _openForcedAddressSetup();
     }
     if (!mounted) return false;
-    return _hasSavedDeliveryAddress();
+    return _hasValidDeliveryAddress();
   }
 
   Future<void> _loadPrimaryLocation({bool forceRefresh = false}) async {
@@ -508,6 +541,15 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       var loc = UserLocationRepository.instance.activeLocation;
       loc ??= await UserLocationRepository.instance
           .getPrimaryLocation(forceRefresh: forceRefresh);
+
+      // If user has no saved locations, fall back to current device GPS location
+      if (loc == null) {
+        await UserLocationRepository.instance
+            .ensureSessionCurrentLocationFromDevice(
+          requestPermissionIfDenied: false,
+        );
+        loc = UserLocationRepository.instance.activeLocation;
+      }
 
       if (loc != null &&
           loc.streetAddress == null &&
@@ -519,6 +561,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         );
         if (stored != null) {
           loc = loc.copyWith(address: stored);
+        } else {
+          final resolved = await LocationSearchService.instance.reverseGeocode(
+            loc.latitude!,
+            loc.longitude!,
+          );
+          if (resolved?.displayName.trim().isNotEmpty ?? false) {
+            loc = loc.copyWith(address: resolved!.displayName.trim());
+          }
         }
       }
 
@@ -526,11 +576,72 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         setState(() {
           _primaryLocation = loc;
           _isLoadingLocation = false;
+          _exactQuotedFee = null;
         });
         _preFetchRoute(); // Start pre-fetching route
+        _fetchDeliveryQuotation();
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingLocation = false);
+    }
+  }
+
+  Future<void> _fetchDeliveryQuotation() async {
+    final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
+    if (!isVerified || !_isDelivery) return;
+    final loc = _primaryLocation;
+    if (loc == null || loc.latitude == null || loc.longitude == null) return;
+    if (loc.latitude == 0 && loc.longitude == 0) return;
+
+    final rawShopId = _restaurant?.id ??
+        (widget.store.items.isNotEmpty
+            ? widget.store.items.first.restaurantId
+            : null);
+    final shopId = int.tryParse(rawShopId?.toString() ?? '');
+    if (shopId == null || shopId <= 0) return;
+
+    if (_isFetchingQuotation) return;
+    _isFetchingQuotation = true;
+
+    try {
+      final response = await ApiClient().dio.post(
+        '${ApiClient.apiPrefix}/user/orders/delivery-quotation',
+        data: {
+          'shopId': shopId,
+          'lat': loc.latitude,
+          'lon': loc.longitude,
+          if (_primaryLocationAddressText() != null)
+            'address': _primaryLocationAddressText(),
+        },
+      );
+      final body = response.data;
+      final data = body is Map && body['data'] is Map
+          ? Map<String, dynamic>.from(body['data'] as Map)
+          : (body is Map ? Map<String, dynamic>.from(body) : null);
+      final fee = (data?['deliveryFee'] as num?)?.toDouble() ??
+          (data?['originalFee'] as num?)?.toDouble();
+      if (fee != null && fee >= 0 && mounted) {
+        setState(() {
+          _exactQuotedFee = fee;
+          _draftDeliveryFee = fee;
+          if (data?['distanceKm'] != null) {
+            _draftDistanceKm = (data!['distanceKm'] as num).toDouble();
+          }
+          if (data?['isFreeDelivery'] == true) {
+            _freeDeliveryActive = true;
+          }
+        });
+      }
+    } catch (_) {
+      // Silently fall back to OSRM estimated fee
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingQuotation = false;
+        });
+      } else {
+        _isFetchingQuotation = false;
+      }
     }
   }
 
@@ -608,6 +719,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     return !shop.freeDeliveryOptOutOfGlobal;
   }
 
+  bool get _isWaitingForDeliveryFee {
+    if (!_isDelivery) return false;
+    if (_isFreeDelivery) return false;
+    final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
+    if (isVerified) {
+      return _exactQuotedFee == null;
+    }
+    return _draftDeliveryFee == 0.0;
+  }
+
   bool get _isFreeDelivery {
     if (_newUserFreeForLoadedShop) return true;
     final shop = _restaurant;
@@ -634,25 +755,39 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   String _getEstimatedDeliveryFeeText() {
     if (_isFreeDelivery) return 'FREE';
+    final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
+    if (isVerified && _exactQuotedFee != null) {
+      return '฿ ${_exactQuotedFee!.toStringAsFixed(0)}';
+    }
     final km = _draftDistanceKm;
     if (km == 0.0) {
-      return '฿ 0.00';
+      return _isFetchingQuotation ? '...' : '฿ 0.00';
     }
     return DeliveryFeeEstimate.rangeLabel(km);
   }
 
   String _getTotalWithDeliveryRange(double payableTotal) {
     // Grab-style: FREE promo → pay food + tax only (no fee range).
-    if (_isFreeDelivery || _draftDistanceKm == 0.0) {
+    if (_isFreeDelivery) {
+      return payableTotal.toFormattedPrice();
+    }
+    final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
+    if (isVerified && _exactQuotedFee != null) {
+      final total = payableTotal + _exactQuotedFee!;
+      return '฿ ${total.toStringAsFixed(0)}';
+    }
+    if (_draftDistanceKm == 0.0) {
       return payableTotal.toFormattedPrice();
     }
     final double baseFee = DeliveryFeeEstimate.minFee(_draftDistanceKm);
     final double maxFee = DeliveryFeeEstimate.maxFee(_draftDistanceKm);
-    
-    final minTotal = payableTotal + (baseFee < maxFee ? baseFee : maxFee);
-    final maxTotal = payableTotal + (baseFee > maxFee ? baseFee : maxFee);
-    
-    if (minTotal == maxTotal) return minTotal.toFormattedPrice();
+
+    final lo = baseFee < maxFee ? baseFee : maxFee;
+    final hi = baseFee > maxFee ? baseFee : maxFee;
+
+    final minTotal = payableTotal + lo;
+    final maxTotal = payableTotal + (lo == hi ? lo + 15 : hi);
+
     return '฿ ${minTotal.toStringAsFixed(0)} - ฿ ${maxTotal.toStringAsFixed(0)}';
   }
 
@@ -672,28 +807,52 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          address,
-          style: AppFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-            height: 1.5,
-          ),
-        ),
-        if (subtitle != null)
-          Text(
-            subtitle,
-            style: AppFonts.poppins(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-              height: 1.4,
+    String? cleanSubtitle = subtitle?.trim();
+    if (cleanSubtitle != null) {
+      final normSub = cleanSubtitle.toLowerCase();
+      final normAddr = address.trim().toLowerCase();
+      if (normSub == normAddr || normAddr.contains(normSub)) {
+        cleanSubtitle = null;
+      } else if (normSub.startsWith(normAddr)) {
+        final remainder = cleanSubtitle
+            .substring(address.trim().length)
+            .replaceAll(RegExp(r'^[·\s,\-]+'), '')
+            .trim();
+        cleanSubtitle = remainder.isNotEmpty ? remainder : null;
+      }
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 75),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              address,
+              style: AppFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+                height: 1.4,
+              ),
             ),
-          ),
-      ],
+            if (cleanSubtitle != null && cleanSubtitle.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                cleanSubtitle,
+                style: AppFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -740,6 +899,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           _loadPrimaryLocation();
         },
       ),
+    );
+  }
+
+  Future<String?> _promptForPhoneBottomSheet() async {
+    return await GlobalModal.show<String>(
+      context: context,
+      barrierDismissible: true,
+      child: const _CodPhonePromptModal(),
     );
   }
 
@@ -810,7 +977,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
     try {
       if (_isDelivery) {
-        final hasAddress = await _ensureSavedDeliveryAddressForOrder();
+        final hasAddress = await _ensureValidDeliveryAddressForOrder();
         if (!hasAddress) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -837,7 +1004,53 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         return;
       }
 
+      if (_selectedDirectChannel == 'COD') {
+        final rawPhone = AuthService().currentUser?.phone?.trim() ?? '';
+        final hasRealPhone = rawPhone.length >= 6 && !rawPhone.startsWith('g_');
+        if (!hasRealPhone) {
+          final savedPhone = await _promptForPhoneBottomSheet();
+          if (savedPhone == null || savedPhone.length < 6) {
+            return;
+          }
+        }
 
+        final foodSubtotal = CartManager.instance.getStoreTotal(widget.store.nameKey).toDouble();
+        final tax = (_restaurant?.taxEnable ?? true) ? (foodSubtotal * 0.07) : 0.0;
+        final delivery = (_isDelivery && !_isFreeDelivery)
+            ? (_exactQuotedFee ?? _draftDeliveryFee)
+            : 0.0;
+        final couponDiscount = _discountForSelected();
+        final estGrandTotal = (foodSubtotal + tax + delivery - couponDiscount).clamp(0, double.infinity);
+
+        if (estGrandTotal < 100) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  context.tr('payment.cod_min_limit'),
+                  style: AppFonts.poppins(),
+                ),
+                backgroundColor: const Color(0xFFEF4444),
+              ),
+            );
+          }
+          return;
+        }
+        if (estGrandTotal > 1500) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  context.tr('payment.cod_max_limit'),
+                  style: AppFonts.poppins(),
+                ),
+                backgroundColor: const Color(0xFFEF4444),
+              ),
+            );
+          }
+          return;
+        }
+      }
 
       // Lock checkout only after preflight passes — beginOrderPlacement() sets
       // [_orderPlacementInFlight], which must not run before ensureCanPlaceNewOrder().
@@ -869,10 +1082,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           if (_primaryLocation?.longitude != null)
             "lon": _primaryLocation!.longitude,
           ..._orderLocationPayload(),
+          if (_isDelivery && (_exactQuotedFee != null || _draftDeliveryFee > 0))
+            "deliveryFee": _exactQuotedFee ?? _draftDeliveryFee,
           "paymentMethodId": _resolvePaymentMethodId(
             _paymentTypes,
             _selectedPaymentMethodId,
           ),
+          if (_selectedDirectChannel == 'COD')
+            "paymentChannel": "COD",
           "items": storeItems
               .map(
                 (item) => {
@@ -918,7 +1135,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
       final serverPaymentChannel = responseData?['paymentChannel']?.toString() ??
           responseData?['payment_channel']?.toString();
-      final effectivePaymentChannel = serverPaymentChannel ?? (isVerified ? 'OMISE' : null);
+      final effectivePaymentChannel = serverPaymentChannel ??
+          (_selectedDirectChannel == 'COD' ? 'COD' : (isVerified ? 'OMISE' : null));
       ActiveOrderState.instance.setActiveOrder(
         storeName: widget.store.name,
         restaurantName: _restaurant?.name ?? widget.store.name,
@@ -996,19 +1214,27 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           );
       final backendDisplayTax =
           responseData?['displayTaxAmount']?.toString();
+      final effectiveDeliveryFee = _isDelivery
+          ? (_isFreeDelivery
+              ? 0.0
+              : (_exactQuotedFee ??
+                  (responseData?['deliveryFee'] as num?)?.toDouble() ??
+                  _draftDeliveryFee))
+          : 0.0;
 
       ActiveOrderState.instance.setOrderDetails(
         totalAmount: backendTotalAmount,
         itemPrice: backendItemPrice,
         taxAmount: backendTaxAmount,
         displayTaxAmount: backendDisplayTax,
+        deliveryFee: effectiveDeliveryFee,
         taxEnable: orderTaxEnable,
         paymentMethod: isVerified
             ? (_selectedDirectChannel == 'TRUEMONEY'
-                ? 'TrueMoney Wallet'
+                ? context.tr('payment.truemoney_title')
                 : _selectedDirectChannel == 'COD'
-                    ? 'Cash on Delivery'
-                    : 'PromptPay')
+                    ? context.tr('payment.cod_title')
+                    : context.tr('payment.promptpay_title'))
             : (_selectedPaymentType?.displayName ?? (mounted ? context.tr('cart.payment') : 'Payment')),
         paymentMethodId: selectedMethodId,
         paymentMethodImageUrl: selectedMethodImage,
@@ -1055,6 +1281,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             store: widget.store,
             restaurant: _restaurant,
             foodTotal: backendItemPrice.round(),
+            deliveryFee: effectiveDeliveryFee,
           ),
         ),
       );
@@ -1161,103 +1388,164 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
         return Scaffold(
           backgroundColor: const Color(0xFFF7F7F7),
+          extendBodyBehindAppBar: _isDelivery && _isFreeDelivery,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            systemOverlayStyle: (_isDelivery && _isFreeDelivery && !_isAppBarScrolled)
+                ? SystemUiOverlayStyle.light
+                : SystemUiOverlayStyle.dark,
+            backgroundColor: (_isDelivery && _isFreeDelivery)
+                ? (_isAppBarScrolled ? Colors.white : Colors.transparent)
+                : Colors.white,
             scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.05),
-                height: 1,
-              ),
-            ),
+            bottom: (_isDelivery && _isFreeDelivery && !_isAppBarScrolled)
+                ? null
+                : PreferredSize(
+                    preferredSize: const Size.fromHeight(1),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      height: 1,
+                    ),
+                  ),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              icon: Icon(
+                Icons.arrow_back,
+                color: (_isDelivery && _isFreeDelivery && !_isAppBarScrolled)
+                    ? Colors.white
+                    : Colors.black,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             centerTitle: false,
             titleSpacing: 0,
-            title: Text(
-              context.tr('cart.order_summary'),
-              style: AppFonts.poppins(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            title: (_isDelivery && _isFreeDelivery && !_isAppBarScrolled)
+                ? null
+                : Text(
+                    context.tr('cart.order_summary'),
+                    style: AppFonts.poppins(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           body: Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification.metrics.axis == Axis.vertical) {
+                      final scrolled = notification.metrics.pixels > 80;
+                      if (scrolled != _isAppBarScrolled) {
+                        setState(() => _isAppBarScrolled = scrolled);
+                      }
+                    }
+                    return false;
+                  },
+                  child: SingleChildScrollView(
+                  padding: EdgeInsets.zero,
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-         // Deliver Information Section
+         // Free Delivery Banner — Visa-style hero
                       if (_isDelivery && _isFreeDelivery)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.25),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                        Builder(builder: (ctx) {
+                          final top = MediaQuery.of(ctx).padding.top;
+                          final isIOS = Theme.of(ctx).platform == TargetPlatform.iOS;
+                          final bannerHeight = (isIOS ? 155.0 : 145.0) + top;
+                          return SizedBox(
+                            width: double.infinity,
+                            height: bannerHeight,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                // Background image
+                                Image.asset(
+                                  'assets/images/free_delivery_banner.webp',
+                                  width: double.infinity,
+                                  height: bannerHeight,
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.center,
+                                ),
+                                // Top dark scrim for AppBar readability
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      stops: const [0.0, 0.5, 1.0],
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.28),
+                                        Colors.black.withValues(alpha: 0.1),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Bottom fade-to-background
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  height: 60,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        stops: const [0.0, 0.55, 1.0],
+                                        colors: [
+                                          Colors.white.withValues(alpha: 0.0),
+                                          const Color(0xFFF7F7F7).withValues(alpha: 0.78),
+                                          const Color(0xFFF7F7F7),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Order Summary title on bottom-left with text shadow (positioned above overlay card)
+                                Positioned(
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 46,
+                                  child: Text(
+                                    context.tr('cart.order_summary'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 19.5,
+                                      fontWeight: FontWeight.w800,
+                                    ).copyWith(
+                                      shadows: [
+                                        Shadow(
+                                          offset: const Offset(0, 2),
+                                          blurRadius: 8,
+                                          color: Colors.black.withValues(alpha: 0.55),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      // Padded content section with card overlay on banner
+                      Transform.translate(
+                        offset: Offset(0, (_isDelivery && _isFreeDelivery) ? -32.0 : 0.0),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            (_isDelivery && _isFreeDelivery) ? 0 : 16,
+                            16,
+                            16,
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  PhosphorIconsFill.star,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'FREE DELIVERY',
-                                      style: AppFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.tr('cart.free_delivery_saved').contains('cart.free_delivery_saved') 
-                                          ? 'You saved delivery fee on this order!' 
-                                          : context.tr('cart.free_delivery_saved'),
-                                      style: AppFonts.poppins(
-                                        color: Colors.white.withValues(alpha: 0.9),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
 
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -1312,6 +1600,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       onTap: () async {
                                         setState(() => _isDelivery = true);
                                         await _ensureDeliveryAddressIfNeeded();
+                                        final isVerified = _restaurant?.isVerified ?? widget.store.isVerified;
+                                        if (isVerified && _exactQuotedFee == null) {
+                                          _fetchDeliveryQuotation();
+                                        }
                                       },
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
@@ -1342,8 +1634,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: InkWell(
-                                      onTap: () =>
-                                          setState(() => _isDelivery = false),
+                                      onTap: () => setState(() {
+                                        _isDelivery = false;
+                                        if (_selectedDirectChannel == 'COD') {
+                                          _selectedDirectChannel = 'PROMPTPAY';
+                                          final online = _paymentTypes
+                                              ?.where((t) =>
+                                                  t.isActive &&
+                                                  !t.isCashOnDelivery)
+                                              .firstOrNull;
+                                          if (online != null) {
+                                            _selectedPaymentMethodId =
+                                                online.paymentMethodId;
+                                          }
+                                        }
+                                      }),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
                                         height: 50,
@@ -1413,49 +1718,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ],
                                 ),
                               ),
-                              // Always show the fee row for delivery — FREE or range.
-                              if (_isDelivery) ...[
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      PhosphorIconsRegular.money,
-                                      color: _isFreeDelivery
-                                          ? AppColors.primary
-                                          : const Color(0xFF94A3B8),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      context.tr('cart.est_delivery_fee'),
-                                      style: AppFonts.poppins(
-                                        color: _isFreeDelivery
-                                            ? AppColors.primary
-                                            : const Color(0xFF94A3B8),
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    if (_isFreeDelivery)
-                                      Text(
-                                        'FREE',
-                                        style: AppFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                        ),
-                                      )
-                                    else if (_draftDeliveryFee > 0)
-                                      GradientText(
-                                        _getEstimatedDeliveryFeeText(),
-                                        style: AppFonts.poppins(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                _newUserFreeDeliveryNote(),
-                              ],
+
 
                               // Delivery fee estimate appears after shop confirms.
                               /*
@@ -1577,36 +1840,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 ),
                               ],
                             ),
-                            if (_restaurant?.isVerified ?? currentStore.isVerified) ...[
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AppColors.primary.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const MyTogetherVerifiedBadge(size: 15),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        context.tr('restaurant.verified_tooltip'),
-                                        style: AppFonts.poppins(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+
                             const SizedBox(height: 16),
                             const Divider(height: 1, color: Color(0xFFE2E8F0)),
                             const SizedBox(height: 16),
@@ -1624,7 +1858,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       _buildCouponSection(foodSubtotal, currentStore.items),
                       // Payment Option Section
                       Container(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -1665,15 +1899,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     .where((t) => t.isActive)
                                     .toList();
 
-                                // Filter based on delivery/pickup status
-                                final paymentTypes = allPaymentTypes.where((
-                                  type,
-                                ) {
-                                  if (type.isCashOnDelivery && _isDelivery) {
-                                    return false;
-                                  }
-                                  return true;
-                                }).toList();
+                                final isVerifiedShop =
+                                    _restaurant?.isVerified ??
+                                    widget.store.isVerified;
+
+                                if (isVerifiedShop) {
+                                  return _buildVerifiedShopPaymentSection(allPaymentTypes);
+                                }
+
+                                final paymentTypes = allPaymentTypes
+                                    .where((t) => !t.isCashOnDelivery)
+                                    .toList();
 
                                 if (paymentTypes.isEmpty) {
                                   return Container(
@@ -1693,32 +1929,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   );
                                 }
 
-                                final isVerifiedShop =
-                                    _restaurant?.isVerified ??
-                                    widget.store.isVerified;
-
-                                if (isVerifiedShop) {
-                                  return _buildVerifiedShopPaymentSection(paymentTypes);
-                                }
-
-                                return ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: paymentTypes.length,
-                                  separatorBuilder: (_, _) =>
-                                      const SizedBox(height: 16),
-                                  itemBuilder: (context, index) {
-                                    final type = paymentTypes[index];
-
-                                    return _buildPaymentOptionTile(
-                                      type.paymentMethodId,
-                                      type.displayName,
-                                      _buildPaymentIcon(type),
-                                      subtitle: type.isCashOnDelivery
-                                          ? 'Pay cash upon delivery'
-                                          : null,
-                                    );
-                                  },
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (int i = 0; i < paymentTypes.length; i++) ...[
+                                      if (i > 0) const SizedBox(height: 12),
+                                      _buildNonVerifiedPaymentTile(paymentTypes[i]),
+                                    ],
+                                  ],
                                 );
                               },
                             ),
@@ -1840,22 +2058,34 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       ),
                                     ],
                                   ),
-                                  Text(
-                                    _isFreeDelivery
-                                        ? 'FREE'
-                                        : (_draftDeliveryFee > 0
-                                            ? _getEstimatedDeliveryFeeText()
-                                            : '—'),
-                                    style: AppFonts.poppins(
-                                      color: _isFreeDelivery
-                                          ? AppColors.primary
-                                          : const Color(0xFF64748B),
-                                      fontSize: _isFreeDelivery ? 15 : 13,
-                                      fontWeight: _isFreeDelivery
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                    ),
-                                  ),
+                                  _isFreeDelivery
+                                      ? Text(
+                                          'FREE',
+                                          style: AppFonts.poppins(
+                                            color: AppColors.primary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        )
+                                      : (_isWaitingForDeliveryFee
+                                          ? AnimatedDotsText(
+                                              baseText: '฿ ',
+                                              style: AppFonts.poppins(
+                                                color: const Color(0xFF64748B),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            )
+                                          : Text(
+                                              _draftDeliveryFee > 0
+                                                  ? _getEstimatedDeliveryFeeText()
+                                                  : '—',
+                                              style: AppFonts.poppins(
+                                                color: const Color(0xFF64748B),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            )),
                                 ],
                               ),
                               _newUserFreeDeliveryNote(),
@@ -1877,13 +2107,22 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                GradientText(
-                                  _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
-                                  style: AppFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                _isWaitingForDeliveryFee
+                                    ? AnimatedDotsText(
+                                        baseText: '฿ ',
+                                        style: AppFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      )
+                                    : GradientText(
+                                        _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
+                                        style: AppFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                               ],
                             ),
                           ],
@@ -1891,8 +2130,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       ),
                       ),
                       const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
                     ],
                   ),
+                ),
                 ),
               ),
 
@@ -1901,6 +2145,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 padding: EdgeInsets.zero,
                 decoration: BoxDecoration(
                   color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
@@ -1910,11 +2155,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   ],
                 ),
                 child: SafeArea(
+                  top: false,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
 
-                      if (hasOngoingOrder && !_isPlacingOrder)
+                      const SizedBox(height: 16),
+                      if (hasOngoingOrder && !_isPlacingOrder) ...[
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Container(
@@ -1950,18 +2197,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 10),
+                      ],
                       if (isShopClosed && orderAvailability != null) ...[
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
                           child: RestaurantOrderStatusStrip(
                             message: orderAvailability.statusStripText(context),
                             reason: OrderBlockReason.closed,
                           ),
                         ),
+                        const SizedBox(height: 2),
                       ],
                       if (_isOutOfDeliveryRange) ...[
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -1991,6 +2241,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                           _straightLineDeliveryKm!,
                                         ),
                                         'limit': _formatKm(_maxDeliveryKm),
+                                        'duration': _formatEstimatedDuration(
+                                          _straightLineDeliveryKm!,
+                                        ),
                                       },
                                     ),
                                     style: AppFonts.poppins(
@@ -2005,46 +2258,49 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 10),
                       ],
                       // Notice to check before order and delivery fee estimate
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              PhosphorIconsFill.info,
-                              color: AppColors.primary,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _isDelivery
-                                    ? (_isFreeDelivery
-                                        ? '${context.tr('cart.check_order_notice')} ဒီအော်ဒါအတွက် ပို့ဆောင်ခ အခမဲ့ ရရှိထားပါသည်။'
-                                        : '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}')
-                                    : context.tr('cart.check_order_notice'),
-                                style: AppFonts.poppins(
-                                  color: const Color(0xFF334155),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.4,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                PhosphorIconsFill.info,
+                                color: AppColors.primary,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _isDelivery
+                                      ? (_isFreeDelivery
+                                          ? '${context.tr('cart.check_order_notice')} ${context.tr('cart.free_delivery_applied')}'
+                                          : '${context.tr('cart.check_order_notice')} ${context.tr('cart.delivery_fee_estimate_notice')}')
+                                      : context.tr('cart.check_order_notice'),
+                                  style: AppFonts.poppins(
+                                    color: const Color(0xFF334155),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.4,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                         child: Row(
                           children: [
                             Expanded(
@@ -2059,13 +2315,22 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  GradientText(
-                                    _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
-                                    style: AppFonts.poppins(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  _isWaitingForDeliveryFee
+                                      ? AnimatedDotsText(
+                                          baseText: '฿ ',
+                                          style: AppFonts.poppins(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        )
+                                      : GradientText(
+                                          _isDelivery ? _getTotalWithDeliveryRange(payableTotal) : payableTotal.toFormattedPrice(),
+                                          style: AppFonts.poppins(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                 ],
                               ),
                             ),
@@ -2075,6 +2340,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                 onPressed: (_isPlacingOrder ||
                                         _isProcessing ||
                                         _isVerifyingOrderEligibility ||
+                                        _isWaitingForDeliveryFee ||
                                         hasOngoingOrder ||
                                         isShopClosed ||
                                         _isOutOfDeliveryRange)
@@ -2323,10 +2589,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         if (online != null) return online.paymentMethodId;
       }
     }
-    final match = active
+    final nonCodActive = active.where((t) => !t.isCashOnDelivery).toList();
+    final match = nonCodActive
         .where((t) => t.paymentMethodId == selectedId)
         .firstOrNull;
     if (match != null) return match.paymentMethodId;
+    if (nonCodActive.isNotEmpty) return nonCodActive.first.paymentMethodId;
     if (active.isNotEmpty) return active.first.paymentMethodId;
     return selectedId ?? 1;
   }
@@ -2368,339 +2636,75 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     return imageUrl;
   }
 
-  /// Renders the payment-method avatar: the backend icon when available,
-  /// otherwise a sensible Phosphor fallback based on the method type.
-  Widget _buildPaymentIcon(ShopPaymentTypeDto type) {
+  Widget _buildNonVerifiedPaymentTile(ShopPaymentTypeDto type) {
+    final isPromptPay = (type.paymentMethodName?.toLowerCase().contains('prompt') ?? false) ||
+        type.paymentMethodCode.contains('PROMPT') ||
+        (!type.isCashOnDelivery && !(type.paymentMethodName?.toLowerCase().contains('true') ?? false));
+    final isTrueMoney = (type.paymentMethodName?.toLowerCase().contains('true') ?? false) ||
+        type.paymentMethodCode.contains('TRUE');
+
+    final String title;
+    final String subtitle;
+    final String badgeText;
+    final Color badgeColor;
+
+    if (isPromptPay) {
+      title = context.tr('payment.promptpay_title');
+      subtitle = context.tr('payment.promptpay_subtitle');
+      badgeText = context.tr('payment.promptpay_badge');
+      badgeColor = const Color(0xFF003D6B);
+    } else if (isTrueMoney) {
+      title = context.tr('payment.truemoney_title');
+      subtitle = context.tr('payment.truemoney_subtitle');
+      badgeText = context.tr('payment.truemoney_badge');
+      badgeColor = const Color(0xFFFF8200);
+    } else {
+      title = type.displayName;
+      subtitle = type.isCashOnDelivery
+          ? context.tr('payment.cod_subtitle')
+          : (type.qrImageUrl != null && type.qrImageUrl!.isNotEmpty
+              ? 'Thai QR Code'
+              : 'Direct payment');
+      badgeText = type.paymentMethodCode.isNotEmpty ? type.paymentMethodCode : 'DIRECT';
+      badgeColor = const Color(0xFF64748B);
+    }
+
+    final isSelected = _selectedPaymentMethodId == type.paymentMethodId;
     final iconUrl = _normalizeImageUrl(type.iconUrl);
-    return Container(
-      width: 48,
-      height: 48,
+
+    final iconWidget = Container(
+      width: 44,
+      height: 44,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      clipBehavior: Clip.antiAlias,
       child: iconUrl != null
-          ? CachedNetworkImage(memCacheWidth: 108, 
+          ? CachedNetworkImage(
+              memCacheWidth: 108,
               imageUrl: iconUrl,
-              width: 36,
-              height: 36,
               fit: BoxFit.contain,
-              errorWidget: (context, url, error) =>
-                  _fallbackPaymentIcon(type),
+              errorWidget: (_, url, error) => Icon(
+                isPromptPay
+                    ? PhosphorIconsFill.qrCode
+                    : PhosphorIconsRegular.creditCard,
+                color: isPromptPay ? const Color(0xFF003D6B) : const Color(0xFF64748B),
+                size: 22,
+              ),
             )
-          : _fallbackPaymentIcon(type),
-    );
-  }
-
-  Widget _fallbackPaymentIcon(ShopPaymentTypeDto type) {
-    return Center(
-      child: Icon(
-        type.isCashOnDelivery
-            ? PhosphorIconsRegular.money
-            : type.qrImageUrl != null && type.qrImageUrl!.isNotEmpty
-            ? PhosphorIconsRegular.qrCode
-            : PhosphorIconsRegular.creditCard,
-        color: const Color(0xFF64748B),
-        size: 20,
-      ),
-    );
-  }
-
-  Widget _buildPaymentOptionTile(
-    int id,
-    String title,
-    Widget iconWidget, {
-    String? subtitle,
-    String? badgeText,
-  }) {
-    final isSelected = _selectedPaymentMethodId == id;
-    return InkWell(
-      onTap: () => setState(() => _selectedPaymentMethodId = id),
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: isSelected ? AppColors.primaryGradient : null,
-          border: isSelected
-              ? null
-              : Border.all(color: Colors.grey.shade200, width: 1.0),
-        ),
-        padding: EdgeInsets.all(isSelected ? 1.5 : 0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(isSelected ? 10.5 : 12),
-          ),
-          child: Row(
-            children: [
-              iconWidget,
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: AppFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        if (badgeText != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              badgeText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: AppFonts.poppins(
-                          fontSize: 11,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: isSelected ? AppColors.primaryGradient : null,
-                  border: isSelected
-                      ? null
-                      : Border.all(
-                          color: const Color(0xFF94A3B8),
-                          width: 1.5,
-                        ),
-                ),
-                child: isSelected
-                    ? Center(
-                        child: Container(
-                          width: 17.6,
-                          height: 17.6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 10.5,
-                              height: 10.5,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: AppColors.primaryGradient,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // VERIFIED SHOP PAYMENT OPTIONS (GRAB & FOODPANDA STANDARD)
-  // ─────────────────────────────────────────────────────────────
-  Widget _buildVerifiedShopPaymentSection(List<ShopPaymentTypeDto> paymentTypes) {
-    final codOption = paymentTypes.where((t) => t.isCashOnDelivery && !_isDelivery).firstOrNull;
-    final hasCod = codOption != null;
-
-    final promptPayType = paymentTypes.where((t) =>
-      (t.paymentMethodName?.toLowerCase().contains('prompt') ?? false) ||
-      t.paymentMethodCode.contains('PROMPT') ||
-      (!t.isCashOnDelivery && !(t.paymentMethodName?.toLowerCase().contains('true') ?? false))
-    ).firstOrNull;
-    final promptPayIconUrl = promptPayType != null ? _normalizeImageUrl(promptPayType.iconUrl) : null;
-
-    final trueMoneyType = paymentTypes.where((t) =>
-      (t.paymentMethodName?.toLowerCase().contains('true') ?? false) ||
-      t.paymentMethodCode.contains('TRUE')
-    ).firstOrNull;
-    final trueMoneyIconUrl = _normalizeImageUrl(trueMoneyType?.iconUrl ?? _trueMoneyApiIconUrl);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. PromptPay Thai QR
-        _buildDirectMethodTile(
-          channelKey: 'PROMPTPAY',
-          title: 'PromptPay',
-          subtitle: 'Thai QR Code • Instant auto-verify',
-          badgeText: 'THAI QR',
-          badgeColor: const Color(0xFF003D6B),
-          iconWidget: Container(
-            width: 44,
-            height: 44,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+          : Icon(
+              isPromptPay
+                  ? PhosphorIconsFill.qrCode
+                  : PhosphorIconsRegular.creditCard,
+              color: isPromptPay ? const Color(0xFF003D6B) : const Color(0xFF64748B),
+              size: 22,
             ),
-            child: promptPayIconUrl != null
-                ? CachedNetworkImage(
-                    memCacheWidth: 108,
-                    imageUrl: promptPayIconUrl,
-                    fit: BoxFit.contain,
-                    errorWidget: (_, url, error) => const Icon(
-                      PhosphorIconsFill.qrCode,
-                      color: Color(0xFF003D6B),
-                      size: 22,
-                    ),
-                  )
-                : const Icon(
-                    PhosphorIconsFill.qrCode,
-                    color: Color(0xFF003D6B),
-                    size: 22,
-                  ),
-          ),
-          paymentTypes: paymentTypes,
-        ),
-        const SizedBox(height: 12),
-
-        // 2. TrueMoney Wallet (Moved to 2nd place, clean white icon without black corners)
-        _buildDirectMethodTile(
-          channelKey: 'TRUEMONEY',
-          title: 'TrueMoney Wallet',
-          subtitle: 'Direct payment from TrueMoney wallet',
-          badgeText: 'WALLET',
-          badgeColor: const Color(0xFFFF8200),
-          iconWidget: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(9),
-              child: trueMoneyIconUrl != null
-                  ? Transform.scale(
-                      scale: 1.15,
-                      child: CachedNetworkImage(
-                        memCacheWidth: 108,
-                        imageUrl: trueMoneyIconUrl,
-                        fit: BoxFit.contain,
-                        errorWidget: (_, url, error) => const Icon(
-                          PhosphorIconsFill.wallet,
-                          color: Color(0xFFFF8200),
-                          size: 22,
-                        ),
-                      ),
-                    )
-                  : const Icon(
-                      PhosphorIconsFill.wallet,
-                      color: Color(0xFFFF8200),
-                      size: 22,
-                    ),
-            ),
-          ),
-          paymentTypes: paymentTypes,
-        ),
-
-
-        // 4. Cash on Delivery (if enabled for pickup or allowed delivery)
-        if (hasCod) ...[
-          const SizedBox(height: 12),
-          _buildDirectMethodTile(
-            channelKey: 'COD',
-            title: 'Cash on Delivery',
-            subtitle: 'အော်ဒါရောက်ရှိချိန်တွင် ငွေသားဖြင့် ပေးချေပါ',
-            badgeText: 'CASH',
-            badgeColor: const Color(0xFF059669),
-            iconWidget: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFA7F3D0)),
-              ),
-              child: const Center(
-                child: Icon(
-                  PhosphorIconsFill.money,
-                  color: Color(0xFF059669),
-                  size: 22,
-                ),
-              ),
-            ),
-            paymentTypes: paymentTypes,
-          ),
-        ],
-      ],
     );
-  }
-
-  Widget _buildDirectMethodTile({
-    required String channelKey,
-    required String title,
-    required String subtitle,
-    required String badgeText,
-    required Color badgeColor,
-    required Widget iconWidget,
-    required List<ShopPaymentTypeDto> paymentTypes,
-  }) {
-    final isSelected = _selectedDirectChannel == channelKey;
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedDirectChannel = channelKey;
-          if (channelKey == 'COD') {
-            final cod = paymentTypes.where((t) => t.isCashOnDelivery).firstOrNull;
-            if (cod != null) {
-              _selectedPaymentMethodId = cod.paymentMethodId;
-            }
-          } else {
-            final online = paymentTypes.where((t) => !t.isCashOnDelivery).firstOrNull;
-            if (online != null) {
-              _selectedPaymentMethodId = online.paymentMethodId;
-            }
-          }
-        });
-      },
+      onTap: () => setState(() => _selectedPaymentMethodId = type.paymentMethodId),
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -2761,17 +2765,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           ),
                           child: Text(
                             badgeText,
-                            style: const TextStyle(
+                            style: AppFonts.poppins(
                               color: Colors.white,
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: AppFonts.poppins(
@@ -2820,6 +2823,357 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       )
                     : null,
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // VERIFIED SHOP PAYMENT OPTIONS (GRAB & FOODPANDA STANDARD)
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildVerifiedShopPaymentSection(List<ShopPaymentTypeDto> paymentTypes) {
+    final hasCod = _isDelivery;
+
+    final promptPayType = paymentTypes.where((t) =>
+      (t.paymentMethodName?.toLowerCase().contains('prompt') ?? false) ||
+      t.paymentMethodCode.contains('PROMPT') ||
+      (!t.isCashOnDelivery && !(t.paymentMethodName?.toLowerCase().contains('true') ?? false))
+    ).firstOrNull;
+    final promptPayIconUrl = promptPayType != null ? _normalizeImageUrl(promptPayType.iconUrl) : null;
+
+    final trueMoneyType = paymentTypes.where((t) =>
+      (t.paymentMethodName?.toLowerCase().contains('true') ?? false) ||
+      t.paymentMethodCode.contains('TRUE')
+    ).firstOrNull;
+    final trueMoneyIconUrl = _normalizeImageUrl(trueMoneyType?.iconUrl ?? _trueMoneyApiIconUrl);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. PromptPay Thai QR
+        _buildDirectMethodTile(
+          channelKey: 'PROMPTPAY',
+          title: context.tr('payment.promptpay_title'),
+          subtitle: context.tr('payment.promptpay_subtitle'),
+          badgeText: context.tr('payment.promptpay_badge'),
+          badgeColor: const Color(0xFF003D6B),
+          iconWidget: Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: promptPayIconUrl != null
+                ? CachedNetworkImage(
+                    memCacheWidth: 108,
+                    imageUrl: promptPayIconUrl,
+                    fit: BoxFit.contain,
+                    errorWidget: (_, url, error) => const Icon(
+                      PhosphorIconsFill.qrCode,
+                      color: Color(0xFF003D6B),
+                      size: 22,
+                    ),
+                  )
+                : const Icon(
+                    PhosphorIconsFill.qrCode,
+                    color: Color(0xFF003D6B),
+                    size: 22,
+                  ),
+          ),
+          paymentTypes: paymentTypes,
+        ),
+        const SizedBox(height: 12),
+
+        // 2. TrueMoney Wallet (Moved to 2nd place, clean white icon without black corners)
+        _buildDirectMethodTile(
+          channelKey: 'TRUEMONEY',
+          title: context.tr('payment.truemoney_title'),
+          subtitle: context.tr('payment.truemoney_subtitle'),
+          badgeText: context.tr('payment.truemoney_badge'),
+          badgeColor: const Color(0xFFFF8200),
+          iconWidget: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: trueMoneyIconUrl != null
+                  ? Transform.scale(
+                      scale: 1.15,
+                      child: CachedNetworkImage(
+                        memCacheWidth: 108,
+                        imageUrl: trueMoneyIconUrl,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, url, error) => const Icon(
+                          PhosphorIconsFill.wallet,
+                          color: Color(0xFFFF8200),
+                          size: 22,
+                        ),
+                      ),
+                    )
+                  : const Icon(
+                      PhosphorIconsFill.wallet,
+                      color: Color(0xFFFF8200),
+                      size: 22,
+                    ),
+            ),
+          ),
+          paymentTypes: paymentTypes,
+        ),
+
+
+        // 4. Cash on Delivery (if enabled for pickup or allowed delivery)
+        if (hasCod) ...[
+          const SizedBox(height: 12),
+          _buildDirectMethodTile(
+            channelKey: 'COD',
+            title: context.tr('payment.cod_title'),
+            subtitle: context.tr('payment.cod_subtitle'),
+            badgeText: context.tr('payment.cod_badge'),
+            badgeGradient: AppColors.primaryGradient,
+            iconWidget: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Center(
+                child: ShaderMask(
+                  shaderCallback: (bounds) =>
+                      AppColors.primaryGradient.createShader(bounds),
+                  blendMode: BlendMode.srcIn,
+                  child: const Icon(
+                    PhosphorIconsFill.money,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+            bottomNotice: _selectedDirectChannel == 'COD'
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.16),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 1.5),
+                          child: ShaderMask(
+                            shaderCallback: (bounds) =>
+                                AppColors.primaryGradient.createShader(bounds),
+                            blendMode: BlendMode.srcIn,
+                            child: const Icon(
+                              PhosphorIconsFill.info,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            context.tr('payment.cod_rule_notice'),
+                            style: AppFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primary,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
+            paymentTypes: paymentTypes,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDirectMethodTile({
+    required String channelKey,
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    Color? badgeColor,
+    Gradient? badgeGradient,
+    Widget? bottomNotice,
+    required Widget iconWidget,
+    required List<ShopPaymentTypeDto> paymentTypes,
+  }) {
+    final isSelected = _selectedDirectChannel == channelKey;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedDirectChannel = channelKey;
+          if (channelKey == 'COD') {
+            final cod = paymentTypes.where((t) => t.isCashOnDelivery).firstOrNull;
+            if (cod != null) {
+              _selectedPaymentMethodId = cod.paymentMethodId;
+            }
+          } else {
+            final online = paymentTypes.where((t) => !t.isCashOnDelivery).firstOrNull;
+            if (online != null) {
+              _selectedPaymentMethodId = online.paymentMethodId;
+            }
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          color: isSelected ? null : Colors.white,
+          border: isSelected
+              ? null
+              : Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        padding: EdgeInsets.all(isSelected ? 1.8 : 0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(isSelected ? 12.2 : 14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  iconWidget,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: AppFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeGradient == null ? badgeColor : null,
+                                gradient: badgeGradient,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: AppFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: AppFonts.poppins(
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: isSelected ? AppColors.primaryGradient : null,
+                      border: isSelected
+                          ? null
+                          : Border.all(
+                              color: const Color(0xFF94A3B8),
+                              width: 1.5,
+                            ),
+                    ),
+                    child: isSelected
+                        ? Center(
+                            child: Container(
+                              width: 17.6,
+                              height: 17.6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                              ),
+                              child: Center(
+                                child: Container(
+                                  width: 10.5,
+                                  height: 10.5,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: AppColors.primaryGradient,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+              if (bottomNotice != null) ...[
+                const SizedBox(height: 10),
+                bottomNotice,
+              ],
             ],
           ),
         ),
@@ -3434,13 +3788,560 @@ class _CouponRowIconButton extends StatelessWidget {
   }
 }
 
+class _CodPhonePromptModal extends StatefulWidget {
+  const _CodPhonePromptModal();
+
+  @override
+  State<_CodPhonePromptModal> createState() => _CodPhonePromptModalState();
+}
+
+class _CodPhonePromptModalState extends State<_CodPhonePromptModal> {
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  bool _showOtpView = false;
+  bool _isLoading = false;
+  String? _verificationId;
+  int? _resendToken;
+  int _resendCountdown = 60;
+  Timer? _resendTimer;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    _phoneController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _startResendTimer() {
+    _resendCountdown = 60;
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendCountdown > 0) {
+        setState(() => _resendCountdown--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _formatPhoneStr() {
+    var cleanPhone = _phoneController.text.trim().replaceAll(' ', '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+    return '+66$cleanPhone';
+  }
+
+  Future<void> _handleSendOtp() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final phoneStr = _formatPhoneStr();
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phoneStr,
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: _resendToken,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _onVerificationSuccess(phoneStr, credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          final msg = FirebaseErrorHandler.getMessage(context, e);
+          setState(() {
+            _isLoading = false;
+            _errorMessage = msg;
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _verificationId = verificationId;
+            _resendToken = resendToken;
+            _showOtpView = true;
+          });
+          _startResendTimer();
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString().replaceAll('Exception:', '').trim();
+      });
+    }
+  }
+
+  Future<void> _handleVerifyOtp() async {
+    final smsCode = _otpController.text.trim();
+    if (_verificationId == null || smsCode.length < 6) {
+      setState(() {
+          _errorMessage = context.tr('payment.cod_otp_full');
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: smsCode,
+      );
+      final phoneStr = _formatPhoneStr();
+      await _onVerificationSuccess(phoneStr, credential);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = FirebaseErrorHandler.getMessage(context, e);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = msg;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString().replaceAll('Exception:', '').trim();
+      });
+    }
+  }
+
+  Future<void> _onVerificationSuccess(
+    String phoneStr,
+    PhoneAuthCredential credential,
+  ) async {
+    try {
+      final currentFirebaseUser = FirebaseAuth.instance.currentUser;
+      if (currentFirebaseUser != null) {
+        try {
+          await currentFirebaseUser.linkWithCredential(credential);
+        } on FirebaseAuthException catch (e) {
+          if (e.code != 'provider-already-linked' &&
+              e.code != 'credential-already-in-use') {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+          }
+        }
+      } else {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      await AuthRepository.instance.updateProfile(phone: phoneStr);
+      if (mounted) {
+        Navigator.of(context).pop(phoneStr);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString().replaceAll('Exception:', '').trim();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showOtpView) {
+      return _buildOtpView();
+    }
+    return _buildPhoneView();
+  }
+
+  Widget _buildPhoneView() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.phone_in_talk_rounded,
+                color: AppColors.primary,
+                size: 32,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            context.tr('payment.cod_verify_phone'),
+            textAlign: TextAlign.center,
+            style: AppFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr('payment.cod_otp_desc'),
+            textAlign: TextAlign.center,
+            style: AppFonts.poppins(
+              fontSize: 13,
+              color: const Color(0xFF64748B),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _phoneController,
+            autofocus: true,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+            style: AppFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E293B),
+              letterSpacing: 1.1,
+            ),
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.phone_android_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '+66',
+                      style: AppFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(width: 1, height: 20, color: const Color(0xFFCBD5E1)),
+                  ],
+                ),
+              ),
+              hintText: context.tr('payment.cod_phone_hint'),
+              hintStyle: AppFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF94A3B8),
+                letterSpacing: 0,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
+              ),
+            ),
+            validator: (value) {
+              final val = value?.trim() ?? '';
+              if (val.isEmpty) {
+                return context.tr('payment.cod_phone_empty');
+              }
+              var clean = val.replaceAll(' ', '');
+              if (clean.startsWith('0')) clean = clean.substring(1);
+              if (!RegExp(r'^[689]\d{8}$').hasMatch(clean)) {
+                return context.tr('payment.cod_invalid_phone');
+              }
+              return null;
+            },
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: AppFonts.poppins(
+                fontSize: 12,
+                color: const Color(0xFFEF4444),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          PrimaryGradientButton(
+            onPressed: _isLoading ? null : _handleSendOtp,
+            isLoading: _isLoading,
+            height: 52,
+            borderRadius: BorderRadius.circular(14),
+            child: Text(
+              context.tr('payment.cod_send_otp'),
+              style: AppFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: TextButton(
+              onPressed: _isLoading ? null : () => Navigator.pop(context, null),
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(
+                context.tr('payment.cod_cancel'),
+                style: AppFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtpView() {
+    final defaultPinTheme = PinTheme(
+      width: 48,
+      height: 52,
+      textStyle: AppFonts.poppins(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF1E293B),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCBD5E1)),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        border: Border.all(color: AppColors.primary, width: 1.8),
+      ),
+    );
+
+    final phoneFormatted = _formatPhoneStr();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.25),
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Icons.mark_email_read_rounded,
+              color: AppColors.primary,
+              size: 32,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          context.tr('payment.cod_otp_enter'),
+          textAlign: TextAlign.center,
+          style: AppFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          context.trArgs('payment.cod_otp_sent', {'phone': phoneFormatted}),
+          textAlign: TextAlign.center,
+          style: AppFonts.poppins(
+            fontSize: 13,
+            color: const Color(0xFF64748B),
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: Pinput(
+            length: 6,
+            controller: _otpController,
+            autofocus: true,
+            defaultPinTheme: defaultPinTheme,
+            focusedPinTheme: focusedPinTheme,
+            keyboardType: TextInputType.number,
+            showCursor: true,
+            onCompleted: (_) {
+              if (!_isLoading) {
+                _handleVerifyOtp();
+              }
+            },
+          ),
+        ),
+        if (_errorMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: AppFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFFEF4444),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_resendCountdown > 0)
+              Text(
+                context.trArgs('payment.cod_resend_countdown', {'seconds': '$_resendCountdown'}),
+                style: AppFonts.poppins(
+                  fontSize: 13,
+                  color: const Color(0xFF94A3B8),
+                  fontWeight: FontWeight.w500,
+                ),
+              )
+            else
+              TextButton(
+                onPressed: _isLoading ? null : _handleSendOtp,
+                child: Text(
+                  context.tr('payment.cod_resend_otp'),
+                  style: AppFonts.poppins(
+                    fontSize: 13,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 8),
+            Text(
+              '•',
+              style: AppFonts.poppins(color: const Color(0xFFCBD5E1)),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      _resendTimer?.cancel();
+                      setState(() {
+                        _showOtpView = false;
+                        _errorMessage = null;
+                        _otpController.clear();
+                      });
+                    },
+              child: Text(
+                context.tr('payment.cod_change_phone'),
+                style: AppFonts.poppins(
+                  fontSize: 13,
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        PrimaryGradientButton(
+          onPressed: _isLoading ? null : _handleVerifyOtp,
+          isLoading: _isLoading,
+          height: 52,
+          borderRadius: BorderRadius.circular(14),
+          child: Text(
+            context.tr('payment.cod_confirm_order'),
+            style: AppFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.pop(context, null),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              context.tr('payment.cod_cancel'),
+              style: AppFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FarDeliveryModal extends StatelessWidget {
   final String distanceStr;
   final String limitStr;
+  final String durationStr;
 
   const _FarDeliveryModal({
     required this.distanceStr,
     required this.limitStr,
+    required this.durationStr,
   });
 
   @override
@@ -3478,6 +4379,7 @@ class _FarDeliveryModal extends StatelessWidget {
           context.trArgs('order.far_delivery_message', {
             'distance': distanceStr,
             'limit': limitStr,
+            'duration': durationStr,
           }),
           textAlign: TextAlign.center,
           style: AppFonts.poppins(

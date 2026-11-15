@@ -625,35 +625,130 @@ class _OrderCompletePageState extends State<OrderCompletePage> {
                     color: Colors.black87,
                   ),
                 ),
+                const Spacer(),
+                Text(
+                  context.tr('common.tap_to_view') != 'common.tap_to_view'
+                      ? context.tr('common.tap_to_view')
+                      : 'Tap to view',
+                  style: AppFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(20),
-            ),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: CustomLoadingIndicator(size: 24)),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.image_not_supported_rounded,
-                    size: 36,
-                    color: Colors.grey,
+          GestureDetector(
+            onTap: () => _showProofPhotoDialog(url),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(20),
+              ),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  AspectRatio(
+                    aspectRatio: 4 / 3,
+                    child: CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(child: CustomLoadingIndicator(size: 24)),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[200],
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.image_not_supported_rounded,
+                          size: 36,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Zoom',
+                          style: AppFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showProofPhotoDialog(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: InteractiveViewer(
+                  maxScale: 4.0,
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CustomLoadingIndicator(size: 32),
+                    ),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(
+                        Icons.image_not_supported_rounded,
+                        size: 48,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 22),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

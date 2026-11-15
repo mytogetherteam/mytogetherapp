@@ -138,8 +138,30 @@ class ActiveOrderItem {
   String? backendStatus;
   String? lastOrderNo;
   String? riderVehicleNumber;
+  LatLng? riderLocation;
+  double? riderHeading;
+  int? riderRemainingMins;
+  double? riderRemainingKm;
+  bool isRiderNear;
+  bool hasAlertedRiderNear;
   String? paymentChannel;
   bool isVerified;
+  String? deliveryProvider;
+  String? deliveryProviderName;
+
+  bool get isLalamoveDelivery =>
+      (deliveryProvider ?? '').toUpperCase() == 'LALAMOVE' ||
+      (deliveryTrackingUrl ?? '').toLowerCase().contains('lalamove');
+
+  bool get isOwnFleetDelivery =>
+      (deliveryProvider ?? '').toUpperCase() == 'OWN_FLEET' ||
+      (deliveryProvider ?? '').toUpperCase() == 'MANUAL';
+
+  String get displayDeliveryProvider {
+    if (isOwnFleetDelivery) return 'Shop Driver';
+    return 'Lalamove';
+  }
+
   String? preferredOmiseMethod;
   DateTime? omiseExpiresAt;
   String? omiseQrImageUrl;
@@ -147,8 +169,11 @@ class ActiveOrderItem {
   Uint8List? omiseQrLogoBytes;
   String? omiseChargeId;
   String? omiseAuthorizeUri;
+  bool get isCodPayment =>
+      (paymentChannel ?? '').toUpperCase() == 'COD';
   bool get isOmisePayment =>
-      (paymentChannel ?? '').toUpperCase() == 'OMISE' || isVerified;
+      !isCodPayment &&
+      ((paymentChannel ?? '').toUpperCase() == 'OMISE' || (isVerified && paymentChannel != 'SLIP'));
 
   bool get isPickupFulfillment {
     final type = (orderType ?? '').toUpperCase();
@@ -319,6 +344,12 @@ class ActiveOrderItem {
     this.backendStatus,
     this.lastOrderNo,
     this.riderVehicleNumber,
+    this.riderLocation,
+    this.riderHeading,
+    this.riderRemainingMins,
+    this.riderRemainingKm,
+    this.isRiderNear = false,
+    this.hasAlertedRiderNear = false,
     this.paymentChannel,
     this.shopId,
     this.shopName,
@@ -335,6 +366,8 @@ class ActiveOrderItem {
     this.taxEnable,
     this.proofPhotoUrl,
     this.isVerified = false,
+    this.deliveryProvider,
+    this.deliveryProviderName,
     this.preferredOmiseMethod = 'PROMPTPAY',
     this.omiseExpiresAt,
     this.omiseQrImageUrl,
@@ -402,6 +435,9 @@ class ActiveOrderItem {
     'riderName': riderName,
     'riderPhone': riderPhone,
     'riderProfileUrl': riderProfileUrl,
+    'riderRemainingMins': riderRemainingMins,
+    'riderRemainingKm': riderRemainingKm,
+    'isRiderNear': isRiderNear,
     'deliveryTrackingUrl': deliveryTrackingUrl,
     'shopPaymentQrUrl': shopPaymentQrUrl,
     'deliveryAddress': deliveryAddress,
@@ -438,6 +474,8 @@ class ActiveOrderItem {
     'riderVehicleNumber': riderVehicleNumber,
     'paymentChannel': paymentChannel,
     'isVerified': isVerified,
+    'deliveryProvider': deliveryProvider,
+    'deliveryProviderName': deliveryProviderName,
     'omiseExpiresAt': omiseExpiresAt?.toIso8601String(),
     'omiseQrImageUrl': omiseQrImageUrl,
     'omiseChargeId': omiseChargeId,
@@ -488,9 +526,21 @@ class ActiveOrderItem {
         isFreeDelivery: json['isFreeDelivery'] == true ||
             (json['displayDeliveryFee']?.toString().toUpperCase() == 'FREE'),
         riderName: json['riderName'] ?? json['deliveryRiderName'] ?? (json['driver'] != null ? json['driver']['name'] : null),
-        riderPhone: json['riderPhone'] ?? json['deliveryPhoneNo'] ?? (json['driver'] != null ? json['driver']['phone'] : null),
+        riderPhone: json['riderPhone'] ??
+            json['driverPhone'] ??
+            json['driver_phone'] ??
+            json['deliveryPhoneNo'] ??
+            (json['driver'] != null
+                ? (json['driver']['phone'] ??
+                    json['driver']['contactNumber'] ??
+                    json['driver']['mobile'] ??
+                    json['driver']['phone_number'])
+                : null),
         riderProfileUrl: json['riderProfileUrl'] ?? (json['driver'] != null ? json['driver']['profileUrl'] : null),
         riderVehicleNumber: json['riderVehicleNumber'] ?? (json['driver'] != null ? json['driver']['vehicleNo'] : null),
+        riderRemainingMins: (json['riderRemainingMins'] ?? json['remainingMins']) as int?,
+        riderRemainingKm: ((json['riderRemainingKm'] ?? json['remainingKm']) as num?)?.toDouble(),
+        isRiderNear: json['isRiderNear'] == true || json['isNear'] == true,
         paymentChannel: json['paymentChannel'] ?? json['payment_channel'],
         deliveryTrackingUrl: json['deliveryTrackingUrl'] ?? json['trackingUrl'],
         shopPaymentQrUrl: json['shopPaymentQrUrl'],
@@ -529,6 +579,8 @@ class ActiveOrderItem {
         backendStatus: json['backendStatus'],
         lastOrderNo: json['lastOrderNo'],
         isVerified: json['isVerified'] as bool? ?? false,
+        deliveryProvider: json['deliveryProvider'] as String?,
+        deliveryProviderName: json['deliveryProviderName'] as String?,
         omiseExpiresAt: json['omiseExpiresAt'] != null
             ? DateTime.tryParse(json['omiseExpiresAt'].toString())
             : null,
@@ -710,12 +762,22 @@ class ActiveOrderState extends ChangeNotifier {
   bool get isVerified => _primary?.isVerified ?? false;
   String? get logoPath => _primary?.logoPath;
   String? get estimatedTime => _primary?.estimatedTime;
+  set estimatedTime(String? val) {
+    if (_primary != null) _primary!.estimatedTime = val;
+  }
   String? get restaurantId => _primary?.restaurantId;
+  set restaurantId(String? val) {
+    if (_primary != null) {
+      _primary!.restaurantId = val;
+      _primary!.shopId = val;
+    }
+  }
   String? get statusLabel => _primary?.statusLabel;
   String? get statusLabelMm => _primary?.statusLabelMm;
   int get orderStatus => _primary?.orderStatus ?? 0;
   String? get paymentChannel => _primary?.paymentChannel;
   bool get isOmisePayment => _primary?.isOmisePayment ?? false;
+  bool get isCodPayment => _primary?.isCodPayment ?? false;
   bool get isPickupFulfillment => _primary?.isPickupFulfillment ?? false;
   bool get isFlexibleDelivery => _primary?.isFlexibleDelivery ?? false;
   bool get hasDeliveryFeeEstimate =>
@@ -762,16 +824,44 @@ class ActiveOrderState extends ChangeNotifier {
   bool get isSlipRequested => _primary?.isSlipRequested ?? false;
   bool get hasNotifiedSlipRequest => _primary?.hasNotifiedSlipRequest ?? false;
   double? get deliveryFee => _primary?.deliveryFee;
+  set deliveryFee(double? val) {
+    if (_primary != null) _primary!.deliveryFee = val;
+  }
   List<LatLng> get routePoints => _primary?.routePoints ?? [];
   double? get routeDistanceKm => _primary?.routeDistanceKm;
   int? get routeDurationMins => _primary?.routeDurationMins;
+  set routeDurationMins(int? val) {
+    if (_primary != null) _primary!.routeDurationMins = val;
+  }
   String? get riderName => _primary?.riderName;
   String? get riderPhone => _primary?.riderPhone;
   String? get riderProfileUrl => _primary?.riderProfileUrl;
   String? get riderVehicleNumber => _primary?.riderVehicleNumber;
+  LatLng? get riderLocation => _primary?.riderLocation;
+  double? get riderHeading => _primary?.riderHeading;
+  int? get riderRemainingMins => _primary?.riderRemainingMins;
+  double? get riderRemainingKm => _primary?.riderRemainingKm;
+  bool get isRiderNear => _primary?.isRiderNear ?? false;
+  set isRiderNear(bool val) {
+    if (_primary != null && _primary!.isRiderNear != val) {
+      _primary!.isRiderNear = val;
+      notifyListeners();
+    }
+  }
+  bool get hasAlertedRiderNear => _primary?.hasAlertedRiderNear ?? false;
+  set hasAlertedRiderNear(bool val) {
+    if (_primary != null) _primary!.hasAlertedRiderNear = val;
+  }
   String? get deliveryTrackingUrl => _primary?.deliveryTrackingUrl;
   String? get shopPaymentQrUrl => _primary?.shopPaymentQrUrl;
   String? get proofPhotoUrl => _primary?.proofPhotoUrl;
+  String? get deliveryProvider => _primary?.deliveryProvider;
+  String? get deliveryProviderName => _primary?.deliveryProviderName;
+  bool get isLalamoveDelivery => _primary?.isLalamoveDelivery ?? false;
+  bool get isOwnFleetDelivery => _primary?.isOwnFleetDelivery ?? false;
+  String get displayDeliveryProvider =>
+      _primary?.displayDeliveryProvider ??
+      (isVerified ? 'Lalamove' : 'Shop Delivery');
   int? get paymentMethodId => _primary?.paymentMethodId;
   String? get paymentMethodImageUrl => _primary?.paymentMethodImageUrl;
   String? get paymentAccountNumber => _primary?.paymentAccountNumber;
@@ -784,13 +874,41 @@ class ActiveOrderState extends ChangeNotifier {
 
   // Refined shop details getters
   String? get shopId => _primary?.shopId;
+  set shopId(String? val) {
+    if (_primary != null) {
+      _primary!.shopId = val;
+      _primary!.restaurantId = val;
+    }
+  }
   String? get shopName => _primary?.shopName;
   String? get shopNameEn => _primary?.shopNameEn;
   String? get shopNameMm => _primary?.shopNameMm;
   String? get shopNameTh => _primary?.shopNameTh;
   String get displayShopName => _primary?.displayShopName ?? '';
   String? get shopLogo => _primary?.shopLogo;
+  set shopLogo(String? val) {
+    if (_primary != null) {
+      _primary!.shopLogo = val;
+      _primary!.logoPath = val;
+      notifyListeners();
+    }
+  }
+
+  set logoPath(String? val) {
+    if (_primary != null) {
+      _primary!.logoPath = val;
+      _primary!.shopLogo = val;
+      notifyListeners();
+    }
+  }
+
   String? get shopImageUrl => _primary?.shopImageUrl;
+  set shopImageUrl(String? val) {
+    if (_primary != null) {
+      _primary!.shopImageUrl = val;
+      notifyListeners();
+    }
+  }
   String? get shopPhone => _primary?.shopPhone;
   set shopPhone(String? val) {
     if (_primary != null) _primary!.shopPhone = val;
@@ -886,13 +1004,17 @@ class ActiveOrderState extends ChangeNotifier {
     if (hasDifferentActiveOrder) return;
 
     _primaryOrderId = id;
+    final resolvedLogo = (logoPath != null && logoPath.isNotEmpty) ? _getFullUrl(logoPath) : null;
     _orders[id] = ActiveOrderItem(
       orderId: id,
       storeName: storeName,
       restaurantName: restaurantName,
-      logoPath: logoPath,
+      logoPath: resolvedLogo,
+      shopLogo: resolvedLogo,
+      shopImageUrl: resolvedLogo,
       estimatedTime: estimatedTime,
       restaurantId: restaurantId,
+      shopId: restaurantId,
       deliveryAddress: deliveryAddress,
       restaurantAddress: restaurantAddress,
       userLocationName: userLocationName,
@@ -902,7 +1024,7 @@ class ActiveOrderState extends ChangeNotifier {
       lastOrderNo: lastOrderNo,
       isFreeDelivery: isFreeDelivery,
       isVerified: isVerified,
-      paymentChannel: isVerified ? 'OMISE' : paymentChannel,
+      paymentChannel: paymentChannel == 'COD' ? 'COD' : (isVerified ? 'OMISE' : paymentChannel),
       preferredOmiseMethod: preferredOmiseMethod,
     );
     saveToPrefs();
@@ -917,6 +1039,8 @@ class ActiveOrderState extends ChangeNotifier {
     double? taxAmount,
     String? displayTaxAmount,
     bool? taxEnable,
+    double? deliveryFee,
+    String? displayDeliveryFee,
     int? paymentMethodId,
     String? paymentMethodImageUrl,
     String? paymentChannel,
@@ -931,7 +1055,15 @@ class ActiveOrderState extends ChangeNotifier {
     if (taxAmount != null) item.taxAmount = taxAmount;
     if (displayTaxAmount != null) item.displayTaxAmount = displayTaxAmount;
     if (taxEnable != null) item.taxEnable = taxEnable;
-    if (item.isVerified) {
+    if (deliveryFee != null && deliveryFee > 0) {
+      item.deliveryFee = deliveryFee;
+    }
+    if (displayDeliveryFee != null && displayDeliveryFee.isNotEmpty) {
+      item.displayDeliveryFee = displayDeliveryFee;
+    }
+    if (paymentChannel == 'COD' || item.paymentChannel == 'COD') {
+      item.paymentChannel = 'COD';
+    } else if (item.isVerified) {
       item.paymentChannel = 'OMISE';
     } else if (paymentChannel != null && paymentChannel.isNotEmpty) {
       item.paymentChannel = paymentChannel;
@@ -939,6 +1071,9 @@ class ActiveOrderState extends ChangeNotifier {
     item.paymentMethod = paymentMethod;
     item.paymentMethodId = paymentMethodId;
     item.paymentMethodImageUrl = paymentMethodImageUrl;
+    if (paymentMethodImageUrl != null && paymentMethodImageUrl.isNotEmpty) {
+      item.shopPaymentQrUrl ??= paymentMethodImageUrl;
+    }
     item.orderItems = List.from(items);
 
     saveToPrefs();
@@ -1205,20 +1340,165 @@ class ActiveOrderState extends ChangeNotifier {
         item.itemPrice! > 0) {
       item.taxEnable = item.taxAmount! > 0;
     }
-    if (data['deliveryRiderName'] != null) {
-      item.riderName = _parseSafeString(data['deliveryRiderName']);
-    } else if (data['driver'] != null) {
-      item.riderName = _parseSafeString(data['driver']['name']);
+    final driverMap = (data['driver'] is Map ? data['driver'] as Map : null) ??
+        (data['lalamove'] is Map && (data['lalamove'] as Map)['driver'] is Map
+            ? (data['lalamove'] as Map)['driver'] as Map
+            : null) ??
+        (data['delivery'] is Map && (data['delivery'] as Map)['driver'] is Map
+            ? (data['delivery'] as Map)['driver'] as Map
+            : null) ??
+        (data['rider'] is Map ? data['rider'] as Map : null);
+
+    final riderNameCandidate = _parseSafeString(
+      data['riderName'] ??
+          data['rider_name'] ??
+          data['driverName'] ??
+          data['driver_name'] ??
+          data['deliveryRiderName'] ??
+          data['delivery_rider_name'] ??
+          (driverMap != null
+              ? (driverMap['name'] ??
+                  driverMap['driverName'] ??
+                  driverMap['fullName'] ??
+                  driverMap['driver_name'])
+              : null),
+    );
+    if (riderNameCandidate != null && riderNameCandidate.isNotEmpty) {
+      item.riderName = riderNameCandidate;
     }
-    
-    if (data['deliveryPhoneNo'] != null) {
-      item.riderPhone = _parseSafeString(data['deliveryPhoneNo']);
-    } else if (data['driver'] != null) {
-      item.riderPhone = _parseSafeString(data['driver']['phone']);
+
+    final phoneCandidate = data['riderPhone'] ??
+        data['rider_phone'] ??
+        data['driverPhone'] ??
+        data['driver_phone'] ??
+        data['driverMobile'] ??
+        data['deliveryPhoneNo'] ??
+        data['delivery_phone_no'] ??
+        (driverMap != null
+            ? (driverMap['phone'] ??
+                driverMap['contactNumber'] ??
+                driverMap['mobile'] ??
+                driverMap['phoneNumber'] ??
+                driverMap['phone_number'] ??
+                driverMap['contact'])
+            : null);
+    if (phoneCandidate != null) {
+      item.riderPhone = _parseSafeString(phoneCandidate);
     }
-    
-    if (data['driver'] != null && data['driver']['profileUrl'] != null) {
-      item.riderProfileUrl = _parseSafeString(data['driver']['profileUrl']);
+
+    final profileCandidate = _parseSafeString(
+      data['riderProfileUrl'] ??
+          data['rider_profile_url'] ??
+          data['driverProfileUrl'] ??
+          data['driver_profile_url'] ??
+          data['driverPhoto'] ??
+          data['driver_photo'] ??
+          data['driverAvatar'] ??
+          data['driver_avatar'] ??
+          data['riderPhoto'] ??
+          data['rider_photo'] ??
+          (driverMap != null
+              ? (driverMap['profileUrl'] ??
+                  driverMap['photo'] ??
+                  driverMap['avatar'] ??
+                  driverMap['picture'] ??
+                  driverMap['image'] ??
+                  driverMap['imageUrl'])
+              : null),
+    );
+    if (profileCandidate != null && profileCandidate.isNotEmpty) {
+      item.riderProfileUrl = profileCandidate;
+    }
+
+    final vehicleCandidate = _parseSafeString(
+      data['riderVehicleNumber'] ??
+          data['rider_vehicle_number'] ??
+          data['driverVehicleNumber'] ??
+          data['driver_vehicle_number'] ??
+          data['deliveryCycleNo'] ??
+          data['delivery_cycle_no'] ??
+          data['vehiclePlate'] ??
+          data['vehicle_plate'] ??
+          data['licensePlate'] ??
+          data['license_plate'] ??
+          data['plateNumber'] ??
+          data['plate_number'] ??
+          (driverMap != null
+              ? (driverMap['vehicleNo'] ??
+                  driverMap['vehicle_no'] ??
+                  driverMap['plateNumber'] ??
+                  driverMap['plate_number'] ??
+                  driverMap['licensePlate'] ??
+                  driverMap['license_plate'] ??
+                  driverMap['plate'] ??
+                  driverMap['vehicleNumber'] ??
+                  driverMap['vehicleType'] ??
+                  driverMap['vehicle'])
+              : null),
+    );
+    if (vehicleCandidate != null && vehicleCandidate.isNotEmpty) {
+      item.riderVehicleNumber = vehicleCandidate;
+    }
+
+    // Driver live coordinates & heading from WebSocket / Lalamove
+    final rawDriverLat = data['driverLat'] ??
+        data['driverLatitude'] ??
+        data['riderLat'] ??
+        data['riderLatitude'];
+    final rawDriverLon = data['driverLon'] ??
+        data['driverLng'] ??
+        data['driverLongitude'] ??
+        data['riderLon'] ??
+        data['riderLng'] ??
+        data['riderLongitude'];
+    final parsedDLat = _parseSafeDouble(rawDriverLat);
+    final parsedDLon = _parseSafeDouble(rawDriverLon);
+
+    if (parsedDLat != null && parsedDLon != null && parsedDLat != 0 && parsedDLon != 0) {
+      item.riderLocation = LatLng(parsedDLat, parsedDLon);
+    } else if (data['driverLocation'] is Map) {
+      final loc = data['driverLocation'] as Map;
+      final lat = _parseSafeDouble(loc['lat'] ?? loc['latitude']);
+      final lon = _parseSafeDouble(loc['lng'] ?? loc['lon'] ?? loc['longitude']);
+      if (lat != null && lon != null && lat != 0 && lon != 0) {
+        item.riderLocation = LatLng(lat, lon);
+      }
+    } else if (data['riderLocation'] is Map) {
+      final loc = data['riderLocation'] as Map;
+      final lat = _parseSafeDouble(loc['lat'] ?? loc['latitude']);
+      final lon = _parseSafeDouble(loc['lng'] ?? loc['lon'] ?? loc['longitude']);
+      if (lat != null && lon != null && lat != 0 && lon != 0) {
+        item.riderLocation = LatLng(lat, lon);
+      }
+    }
+
+    final rawHeading = data['driverHeading'] ?? data['riderHeading'] ?? data['heading'];
+    final parsedHeading = _parseSafeDouble(rawHeading);
+    if (parsedHeading != null) {
+      item.riderHeading = parsedHeading;
+    }
+    if (data['isRiderNear'] == true || data['isNear'] == true) {
+      item.isRiderNear = true;
+    }
+    if (data['remainingMins'] != null) {
+      item.riderRemainingMins = (data['remainingMins'] as num).toInt();
+    } else if (data['riderRemainingMins'] != null) {
+      item.riderRemainingMins = (data['riderRemainingMins'] as num).toInt();
+    }
+    if (data['remainingKm'] != null) {
+      item.riderRemainingKm = (data['remainingKm'] as num).toDouble();
+    } else if (data['riderRemainingKm'] != null) {
+      item.riderRemainingKm = (data['riderRemainingKm'] as num).toDouble();
+    }
+    if (data['routeDurationMins'] != null) {
+      item.routeDurationMins = (data['routeDurationMins'] as num).toInt();
+    } else if (data['durationMins'] != null) {
+      item.routeDurationMins = (data['durationMins'] as num).toInt();
+    }
+    if (data['estimatedTime'] != null) {
+      item.estimatedTime = _parseSafeString(data['estimatedTime']);
+    } else if (item.routeDurationMins != null && (item.estimatedTime == null || item.estimatedTime!.isEmpty)) {
+      item.estimatedTime = '${item.routeDurationMins} mins';
     }
 
     // Shop contact number. The backend exposes it under a few shapes depending
@@ -1263,21 +1543,33 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     final qrUrl = _parseSafeString(data['shopPaymentQrUrl']);
-    if (qrUrl != null && _isValidUrl(qrUrl)) item.shopPaymentQrUrl = qrUrl;
+    if (qrUrl != null && qrUrl.isNotEmpty) {
+      final fullQr = _getFullUrl(qrUrl);
+      if (_isValidUrl(fullQr)) item.shopPaymentQrUrl = fullQr;
+    }
 
     final accNumber = _parseSafeString(data['paymentAccountNumber'] ?? data['shopPaymentAccountNumber'] ?? data['accountNumber']);
-    if (accNumber != null) item.paymentAccountNumber = accNumber;
+    if (accNumber != null && accNumber.isNotEmpty) item.paymentAccountNumber = accNumber;
     
     final accName = _parseSafeString(data['paymentAccountName'] ?? data['shopPaymentAccountName'] ?? data['accountName']);
-    if (accName != null) item.paymentAccountName = accName;
+    if (accName != null && accName.isNotEmpty) item.paymentAccountName = accName;
 
-    final pm = data['paymentMethod'];
+    final pm = data['paymentMethod'] ?? data['shopPaymentMethod'];
     if (pm is Map) {
-      final pmQr = _parseSafeString(pm['qr']);
-      if (pmQr != null && _isValidUrl(pmQr)) item.shopPaymentQrUrl = pmQr;
+      final pmQr = _parseSafeString(pm['qr'] ?? pm['qrImageUrl']);
+      if (pmQr != null && pmQr.isNotEmpty) {
+        final fullPmQr = _getFullUrl(pmQr);
+        if (_isValidUrl(fullPmQr)) item.shopPaymentQrUrl = fullPmQr;
+      }
 
-      final pmIcon = _parseSafeString(pm['iconUrl']);
-      if (pmIcon != null && _isValidUrl(pmIcon)) item.paymentMethodImageUrl = pmIcon;
+      final pmIcon = _parseSafeString(
+        pm['iconUrl'] ??
+            (pm['paymentMethod'] is Map ? (pm['paymentMethod'] as Map)['iconUrl'] : null),
+      );
+      if (pmIcon != null && pmIcon.isNotEmpty) {
+        final fullPmIcon = _getFullUrl(pmIcon);
+        if (_isValidUrl(fullPmIcon)) item.paymentMethodImageUrl = fullPmIcon;
+      }
 
       final pmAccNumber = _parseSafeString(pm['accountNumber']);
       if (pmAccNumber != null && pmAccNumber.isNotEmpty) item.paymentAccountNumber = pmAccNumber;
@@ -1287,20 +1579,72 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     final pChannel = _parseSafeString(data['paymentChannel'] ?? data['payment_channel']);
-    if (item.isVerified) {
+    if (pChannel?.toUpperCase() == 'COD' || item.paymentChannel == 'COD') {
+      item.paymentChannel = 'COD';
+    } else if (item.isVerified) {
       item.paymentChannel = 'OMISE';
     } else if (pChannel != null && pChannel.isNotEmpty) {
       item.paymentChannel = pChannel;
     }
 
-    final proofUrl = _parseSafeString(data['proofPhotoUrl']);
+    final rawProof = data['proofPhotoUrl'] ??
+        data['proof_photo_url'] ??
+        data['deliveryProofUrl'] ??
+        (data['pod'] is Map ? (data['pod'] as Map)['image'] : null) ??
+        data['podImage'] ??
+        data['podUrl'];
+    final proofUrl = _parseSafeString(rawProof);
     if (proofUrl != null && proofUrl.isNotEmpty) {
       item.proofPhotoUrl = _getFullUrl(proofUrl);
     }
 
-    final logoUrl = _parseSafeString(data['logoPath'] ?? data['shopLogo']);
-    if (logoUrl != null && logoUrl.isNotEmpty) {
-      item.logoPath = _getFullUrl(logoUrl);
+    final rawProvider = _parseSafeString(data['deliveryProvider'] ?? data['delivery_provider']);
+    if (rawProvider != null && rawProvider.isNotEmpty) {
+      item.deliveryProvider = rawProvider;
+    }
+    final rawProviderName = _parseSafeString(data['deliveryProviderName'] ?? data['delivery_provider_name']);
+    if (rawProviderName != null && rawProviderName.isNotEmpty) {
+      item.deliveryProviderName = rawProviderName;
+    }
+
+    final shopMapForLogo = data['shop'] is Map ? Map<String, dynamic>.from(data['shop'] as Map) : null;
+    final restMapForLogo = data['restaurant'] is Map ? Map<String, dynamic>.from(data['restaurant'] as Map) : null;
+    final parsedShopLogo = _parseSafeString(
+      data['logoPath'] ??
+          data['shopLogo'] ??
+          data['shop_logo'] ??
+          data['logoUrl'] ??
+          data['logo_url'] ??
+          data['shopImageUrl'] ??
+          data['shop_image_url'] ??
+          data['coverUrl'] ??
+          data['cover_url'] ??
+          data['imageUrl'] ??
+          data['image_url'] ??
+          data['restaurantLogo'] ??
+          data['restaurant_logo'] ??
+          (shopMapForLogo != null
+              ? (ShopImageResolver.resolveShopAvatarFromJson(shopMapForLogo) ??
+                  shopMapForLogo['logoUrl'] ??
+                  shopMapForLogo['logo'] ??
+                  shopMapForLogo['shopLogo'] ??
+                  shopMapForLogo['logoPath'] ??
+                  shopMapForLogo['imageUrl'] ??
+                  shopMapForLogo['coverUrl'])
+              : null) ??
+          (restMapForLogo != null
+              ? (ShopImageResolver.resolveShopAvatarFromJson(restMapForLogo) ??
+                  restMapForLogo['logoUrl'] ??
+                  restMapForLogo['logo'] ??
+                  restMapForLogo['imageUrl'] ??
+                  restMapForLogo['coverUrl'])
+              : null),
+    );
+    if (parsedShopLogo != null && parsedShopLogo.isNotEmpty) {
+      final fullLogo = _getFullUrl(parsedShopLogo);
+      item.logoPath = fullLogo;
+      item.shopLogo = fullLogo;
+      item.shopImageUrl ??= fullLogo;
     }
 
     final parsedShopNameEn = _parseSafeString(
@@ -1320,12 +1664,19 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     final parsedVerified = (data['isVerified'] as bool?) ??
+        (data['isVerifiedShop'] as bool?) ??
         (data['shop'] is Map ? (data['shop'] as Map)['isVerified'] as bool? : null);
     if (parsedVerified != null) {
       item.isVerified = parsedVerified;
     }
-    if (item.isVerified) {
+    if (pChannel?.toUpperCase() == 'COD' || item.paymentChannel == 'COD') {
+      item.paymentChannel = 'COD';
+    } else if (item.isVerified) {
       item.paymentChannel = 'OMISE';
+    } else if (pChannel != null && pChannel.isNotEmpty) {
+      item.paymentChannel = pChannel;
+    } else {
+      item.paymentChannel ??= 'SLIP';
     }
 
     if (data['orderDeliveryType'] != null) {
@@ -1403,18 +1754,51 @@ class ActiveOrderState extends ChangeNotifier {
       item.userLocationName = _parseSafeString(data['userLocationName']);
     }
 
-    if (data['restaurantLatitude'] != null &&
-        data['restaurantLongitude'] != null) {
-      item.restaurantLatLng = LatLng(
-        _parseSafeDouble(data['restaurantLatitude'])!,
-        _parseSafeDouble(data['restaurantLongitude'])!,
-      );
+    final rawShopLat = data['restaurantLatitude'] ??
+        data['restaurantLat'] ??
+        data['shopLatitude'] ??
+        data['shopLat'] ??
+        (data['shop'] is Map ? (data['shop'] as Map)['latitude'] ?? (data['shop'] as Map)['lat'] : null) ??
+        (data['restaurant'] is Map ? (data['restaurant'] as Map)['latitude'] ?? (data['restaurant'] as Map)['lat'] : null);
+    final rawShopLon = data['restaurantLongitude'] ??
+        data['restaurantLng'] ??
+        data['restaurantLon'] ??
+        data['shopLongitude'] ??
+        data['shopLng'] ??
+        data['shopLon'] ??
+        (data['shop'] is Map ? (data['shop'] as Map)['longitude'] ?? (data['shop'] as Map)['lng'] ?? (data['shop'] as Map)['lon'] : null) ??
+        (data['restaurant'] is Map ? (data['restaurant'] as Map)['longitude'] ?? (data['restaurant'] as Map)['lng'] ?? (data['restaurant'] as Map)['lon'] : null);
+    if (rawShopLat != null && rawShopLon != null) {
+      final sLat = _parseSafeDouble(rawShopLat);
+      final sLon = _parseSafeDouble(rawShopLon);
+      if (sLat != null && sLon != null && sLat != 0 && sLon != 0) {
+        item.restaurantLatLng = LatLng(sLat, sLon);
+      }
     }
-    if (data['customerLatitude'] != null && data['customerLongitude'] != null) {
-      item.userLocation = LatLng(
-        _parseSafeDouble(data['customerLatitude'])!,
-        _parseSafeDouble(data['customerLongitude'])!,
-      );
+
+    final rawCustLat = data['customerLatitude'] ??
+        data['customerLat'] ??
+        data['userLat'] ??
+        data['userLatitude'] ??
+        data['lat'] ??
+        data['latitude'] ??
+        (data['deliveryAddress'] is Map ? (data['deliveryAddress'] as Map)['latitude'] ?? (data['deliveryAddress'] as Map)['lat'] : null);
+    final rawCustLon = data['customerLongitude'] ??
+        data['customerLng'] ??
+        data['customerLon'] ??
+        data['userLng'] ??
+        data['userLon'] ??
+        data['userLongitude'] ??
+        data['lon'] ??
+        data['lng'] ??
+        data['longitude'] ??
+        (data['deliveryAddress'] is Map ? (data['deliveryAddress'] as Map)['longitude'] ?? (data['deliveryAddress'] as Map)['lng'] ?? (data['deliveryAddress'] as Map)['lon'] : null);
+    if (rawCustLat != null && rawCustLon != null) {
+      final cLat = _parseSafeDouble(rawCustLat);
+      final cLon = _parseSafeDouble(rawCustLon);
+      if (cLat != null && cLon != null && cLat != 0 && cLon != 0) {
+        item.userLocation = LatLng(cLat, cLon);
+      }
     }
 
     if (data['cancelReason'] != null) {
@@ -1443,7 +1827,17 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     // Refined shop fields
-    if (data['shopId'] != null) item.shopId = _parseSafeString(data['shopId']);
+    final rawShopId = data['shopId'] ??
+        data['shop_id'] ??
+        data['restaurantId'] ??
+        data['restaurant_id'] ??
+        (data['shop'] is Map ? (data['shop'] as Map)['id'] : null) ??
+        (data['restaurant'] is Map ? (data['restaurant'] as Map)['id'] : null);
+    if (rawShopId != null) {
+      final sId = _parseSafeString(rawShopId);
+      item.shopId = sId;
+      item.restaurantId = sId;
+    }
     if (data['shopNameEn'] != null) {
       final name = _parseSafeString(data['shopNameEn']);
       if (name != null && name.isNotEmpty && name != 'Shop') {
@@ -1486,10 +1880,12 @@ class ActiveOrderState extends ChangeNotifier {
     }
 
     // Improved image mapping with fallbacks
-    final rawLogo = data['shopLogo'] ?? data['logoPath'];
-    if (rawLogo != null) {
-      item.shopLogo = _getFullUrl(_parseSafeString(rawLogo));
-      item.logoPath = item.shopLogo; // Sync legacy field
+    if (item.shopLogo == null || item.shopLogo!.isEmpty) {
+      final fallbackLogo = data['shopLogo'] ?? data['logoPath'];
+      if (fallbackLogo != null) {
+        item.shopLogo = _getFullUrl(_parseSafeString(fallbackLogo));
+        item.logoPath = item.shopLogo; // Sync legacy field
+      }
     }
 
     final shopMap = data['shop'];
@@ -1505,6 +1901,15 @@ class ActiveOrderState extends ChangeNotifier {
             : null);
     if (rawImage != null) {
       item.shopImageUrl = _getFullUrl(_parseSafeString(rawImage));
+    }
+    if (item.logoPath == null || item.logoPath!.isEmpty) {
+      item.logoPath = item.shopLogo ?? item.shopImageUrl;
+    }
+    if (item.shopLogo == null || item.shopLogo!.isEmpty) {
+      item.shopLogo = item.logoPath ?? item.shopImageUrl;
+    }
+    if (item.shopImageUrl == null || item.shopImageUrl!.isEmpty) {
+      item.shopImageUrl = item.shopLogo ?? item.logoPath;
     }
 
     // Handle ongoing status
@@ -1693,10 +2098,11 @@ class ActiveOrderState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updatePaymentMethodDetails({String? imageUrl, String? accountNumber, String? accountName, String? orderId}) {
+  void updatePaymentMethodDetails({String? imageUrl, String? qrUrl, String? accountNumber, String? accountName, String? orderId}) {
     final targetId = orderId ?? this.orderId;
     if (targetId == null || !_orders.containsKey(targetId)) return;
     final item = _orders[targetId]!;
+    if (qrUrl != null && qrUrl.isNotEmpty) item.shopPaymentQrUrl = qrUrl;
     if (imageUrl != null && imageUrl.isNotEmpty) item.paymentMethodImageUrl = imageUrl;
     if (accountNumber != null && accountNumber.isNotEmpty) item.paymentAccountNumber = accountNumber;
     if (accountName != null && accountName.isNotEmpty) item.paymentAccountName = accountName;
@@ -1964,7 +2370,7 @@ class ActiveOrderState extends ChangeNotifier {
           : null,
       isFreeDelivery: o.isFreeDelivery,
       isVerified: o.isVerified,
-      paymentChannel: o.isVerified ? 'OMISE' : o.paymentChannel,
+      paymentChannel: o.paymentChannel == 'COD' ? 'COD' : (o.isVerified ? 'OMISE' : o.paymentChannel),
       transactionDiscount: o.transactionDiscount,
       displayTransactionDiscount: o.displayTransactionDiscount,
     );
@@ -1972,7 +2378,9 @@ class ActiveOrderState extends ChangeNotifier {
 
   void _applyOrderHistorySnapshot(ActiveOrderItem item, OrderHistoryDto o) {
     item.isVerified = o.isVerified;
-    if (o.isVerified) {
+    if (o.paymentChannel == 'COD' || item.paymentChannel == 'COD') {
+      item.paymentChannel = 'COD';
+    } else if (o.isVerified) {
       item.paymentChannel = 'OMISE';
     } else if (o.paymentChannel != null && o.paymentChannel!.isNotEmpty) {
       item.paymentChannel = o.paymentChannel;

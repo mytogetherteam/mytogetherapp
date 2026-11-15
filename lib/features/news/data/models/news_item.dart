@@ -1,8 +1,7 @@
 import '../../../../core/localization/locale_controller.dart';
 import 'news_dto.dart';
-import '../../../lost_and_found/data/models/item_post_dto.dart';
 
-enum FeedSource { news, itemPost }
+enum FeedSource { news }
 
 class NewsItem {
   final String id;
@@ -19,7 +18,6 @@ class NewsItem {
 
   final String? location;
   final String? phoneNumber;
-  final String? itemPostType;
 
   NewsItem({
     required this.id,
@@ -35,7 +33,6 @@ class NewsItem {
     this.isLiked = false,
     this.location,
     this.phoneNumber,
-    this.itemPostType,
   });
 
   bool get isApiBacked => entityId != null;
@@ -54,25 +51,6 @@ class NewsItem {
       commentsCount: dto.commentCount,
       timeAgo: dto.timeAgo,
       isLiked: dto.likedByMe,
-    );
-  }
-
-  factory NewsItem.fromItemPost(ItemPostDto dto) {
-    return NewsItem(
-      id: dto.id.toString(),
-      entityId: dto.id,
-      source: FeedSource.itemPost,
-      authorName: dto.user?.displayName ?? 'User',
-      authorAvatar: dto.user?.profileUrl ?? '',
-      content: dto.description,
-      imageUrls: dto.imageUrls,
-      likesCount: dto.likeCount,
-      commentsCount: dto.commentCount,
-      timeAgo: dto.timeAgo,
-      isLiked: dto.likedByMe,
-      location: dto.locationLabel,
-      phoneNumber: dto.phoneNumber,
-      itemPostType: dto.type,
     );
   }
 }

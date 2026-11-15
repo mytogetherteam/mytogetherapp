@@ -12,7 +12,6 @@ import 'package:mytogetherapp/core/utils/haptic_splash_factory.dart';
 import '../../data/models/news_comment.dart';
 import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
-import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 
 Future<int?> showNewsCommentsSheet({
   required BuildContext context,
@@ -107,25 +106,6 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
           _loading = false;
           widget.item.commentsCount = _comments.length;
         });
-      } else if (widget.item.source == FeedSource.itemPost) {
-        final rows = await ItemPostRepository.instance.fetchComments(id);
-        if (!mounted) return;
-        setState(() {
-          _comments = rows
-              .map(
-                (c) => NewsComment(
-                  id: c.id,
-                  authorName: c.authorName,
-                  authorAvatar: c.authorAvatar,
-                  content: c.content,
-                  timeAgo: c.timeAgo,
-                  isMine: _myUserId != -1 && c.user?.id == _myUserId,
-                ),
-              )
-              .toList();
-          _loading = false;
-          widget.item.commentsCount = _comments.length;
-        });
       } else {
         if (!mounted) return;
         setState(() => _loading = false);
@@ -152,30 +132,6 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
       try {
         if (widget.item.source == FeedSource.news) {
           final created = await NewsRepository.instance.addComment(
-            entityId,
-            text,
-          );
-          if (!mounted) return;
-          if (created != null) {
-            AppHaptics.buttonTap();
-            setState(() {
-              _comments.insert(
-                0,
-                NewsComment(
-                  id: created.id,
-                  authorName: created.authorName,
-                  authorAvatar: created.authorAvatar,
-                  content: created.content,
-                  timeAgo: created.timeAgo,
-                  isMine: true,
-                ),
-              );
-              widget.item.commentsCount = _comments.length;
-              _commentController.clear();
-            });
-          }
-        } else if (widget.item.source == FeedSource.itemPost) {
-          final created = await ItemPostRepository.instance.addComment(
             entityId,
             text,
           );
@@ -279,13 +235,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
 
     setState(() => _comments[index] = comment.copyWith(content: newText));
     try {
-      if (widget.item.source == FeedSource.news) {
-        await NewsRepository.instance
-            .updateComment(entityId, commentId, newText);
-      } else {
-        await ItemPostRepository.instance
-            .updateComment(entityId, commentId, newText);
-      }
+      await NewsRepository.instance.updateComment(entityId, commentId, newText);
     } catch (_) {
       if (!mounted) return;
       setState(() => _comments[index] = comment);
@@ -319,11 +269,7 @@ class _NewsCommentsSheetState extends State<NewsCommentsSheet> {
     });
 
     try {
-      if (widget.item.source == FeedSource.news) {
-        await NewsRepository.instance.deleteComment(entityId, commentId);
-      } else {
-        await ItemPostRepository.instance.deleteComment(entityId, commentId);
-      }
+      await NewsRepository.instance.deleteComment(entityId, commentId);
     } catch (_) {
       if (!mounted) return;
       setState(() {

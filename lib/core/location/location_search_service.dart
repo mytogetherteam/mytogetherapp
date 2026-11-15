@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 
 import '../config/google_maps_config.dart';
 import 'google_places_client.dart';
+import 'local_poi_directory.dart';
+import 'native_device_geocoder.dart';
 import 'nominatim_geocoder.dart';
 
 /// Result from a Google Maps Places/Geocoding query.
@@ -167,7 +169,7 @@ class PlaceResult {
   }
 
   /// Haversine formula for distance in km
-  static double _haversine(double lat1, double lon1, double lat2, double lon2) {
+  static double haversine(double lat1, double lon1, double lat2, double lon2) {
     if (lat1 == 0 || lon1 == 0 || lat2 == 0 || lon2 == 0) return 0;
     
     const R = 6371.0; // Earth radius in km
@@ -178,6 +180,9 @@ class PlaceResult {
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }
+
+  static double _haversine(double lat1, double lon1, double lat2, double lon2) =>
+      haversine(lat1, lon1, lat2, lon2);
 
   static double _toRad(double deg) => deg * pi / 180;
 
@@ -224,11 +229,34 @@ class LocationSearchService {
     _sessionToken = null;
   }
 
-  /// Forward geocode: search using Autocomplete (with session token), then Geocoding fallback.
-  Future<List<PlaceResult>> searchPlaces(String query, {double? lat, double? lon}) {
-    if (!GoogleMapsConfig.placesSearchEnabled) return Future.value([]);
-    final token = _getOrCreateSessionToken();
-    return _client.searchPlaces(query, lat: lat, lon: lon, sessionToken: token);
+  static final Map<String, PlaceResult> _reverseGeocodeCache = {};
+
+  /// Forward geocode: search places with 100% $0 cost.
+  /// 1. Searches local curated POI directory (condos, landmarks) -> $0.
+  /// 2. Searches OpenStreetMap Nominatim -> $0.
+  Future<List<PlaceResult>> searchPlaces(String query, {double? lat, double? lon}) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+
+    final results = <PlaceResult>[];
+
+    // 1. Check Local POI Directory first ($0 cost)
+    final localMatches = LocalPoiDirectory.search(trimmed, lat: lat, lon: lon);
+    results.addAll(localMatches);
+
+    // 2. OpenStreetMap Nominatim free forward search ($0 cost)
+    try {
+      final osmResults = await NominatimGeocoder.search(trimmed, lat: lat, lon: lon);
+      for (final r in osmResults) {
+        if (!results.any((x) => x.name == r.name || x.displayName == r.displayName)) {
+          results.add(r);
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('OSM search error: $e');
+    }
+
+    return results;
   }
 
   /// Pre-fetches the details (including lat/lon) for a specific place_id if it's missing them.
@@ -246,60 +274,90 @@ class LocationSearchService {
   }
 
   /// Reverse geocode: get full address string and components from coordinates.
-  /// On web, Nominatim is tried first (fast, no billing). Google is the fallback.
+  /// 100% $0 GUARANTEED ZERO COST:
+  /// 1. Memory grid cache (~11m) -> $0.
+  /// 2. Local POI Directory (e.g. LESTO CONDO Sukhumvit113, Niche ID) -> $0.
+  /// 3. Device Native Geocoder (Apple CoreLocation on iOS, Android System Geocoder on Android) -> $0.
+  /// 4. OpenStreetMap Nominatim fallback -> $0.
+  /// Zero Google Places or Geocoding API billing.
   Future<PlaceResult?> reverseGeocode(double lat, double lon) async {
-    if (kIsWeb) {
-      return _reverseGeocodeWebFirst(lat, lon);
-    }
-    return _reverseGeocodeGoogleFirst(lat, lon);
-  }
+    // Check Local POI Directory ($0 cost) first
+    final localPoi = LocalPoiDirectory.findNearby(lat, lon);
 
-  Future<PlaceResult?> _reverseGeocodeWebFirst(double lat, double lon) async {
-    try {
-      final nominatim = await NominatimGeocoder.reverseGeocode(lat, lon)
-          .timeout(const Duration(seconds: 6));
-      if (nominatim != null && nominatim.displayName.trim().isNotEmpty) {
-        return nominatim;
+    // 1. Instant Cache check (~11 meter precision grid)
+    final cacheKey = '${lat.toStringAsFixed(4)},${lon.toStringAsFixed(4)}';
+    if (_reverseGeocodeCache.containsKey(cacheKey)) {
+      final cached = _reverseGeocodeCache[cacheKey]!;
+      if (localPoi != null && !cached.displayName.contains(localPoi.name)) {
+        final enhanced = cached.copyWith(
+          name: localPoi.name,
+          displayName: '${localPoi.name}, ${cached.displayName}',
+        );
+        _reverseGeocodeCache[cacheKey] = enhanced;
+        return enhanced;
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
+      return cached;
     }
 
+    PlaceResult? result;
+
+    // 3. Try Device Native Geocoder (Apple CoreLocation on iOS, Android System Geocoder on Android)
     try {
-      final google = await _client
-          .reverseGeocode(lat, lon)
-          .timeout(const Duration(seconds: 4));
-      if (google != null && google.displayName.trim().isNotEmpty) {
-        return google;
-      }
+      result = await NativeDeviceGeocoder.reverseGeocode(lat, lon);
     } catch (e) {
-      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
+      if (kDebugMode) debugPrint('Native geocoder error: $e');
+      result = null;
+    }
+
+    // 4. Try OpenStreetMap Nominatim ($0 free fallback)
+    if (result == null || result.displayName.trim().isEmpty) {
+      try {
+        result = await NominatimGeocoder.reverseGeocode(lat, lon)
+            .timeout(const Duration(seconds: 4));
+      } catch (e) {
+        if (kDebugMode) debugPrint('Nominatim reverse error: $e');
+        result = null;
+      }
+    }
+
+    // 5. Combine with matched Local POI (e.g. "LESTO CONDO Sukhumvit113")
+    if (result != null) {
+      PlaceResult finalPlace = result;
+      if (localPoi != null) {
+        final poiName = localPoi.name;
+        final rawDisplay = result.displayName.trim();
+        final display = rawDisplay.contains(poiName)
+            ? rawDisplay
+            : '$poiName, $rawDisplay';
+        finalPlace = result.copyWith(
+          name: poiName,
+          displayName: display,
+        );
+      }
+      _putCache(cacheKey, finalPlace);
+      return finalPlace;
+    }
+
+    // 6. If both geocoders failed but Local POI was found, return it directly
+    if (localPoi != null) {
+      final poiPlace = PlaceResult(
+        placeId: 'local_${localPoi.name.replaceAll(' ', '_')}',
+        name: localPoi.name,
+        displayName: localPoi.name,
+        lat: lat,
+        lon: lon,
+      );
+      _putCache(cacheKey, poiPlace);
+      return poiPlace;
     }
 
     return null;
   }
 
-  Future<PlaceResult?> _reverseGeocodeGoogleFirst(double lat, double lon) async {
-    // 1. Call Google Reverse Geocoding directly (/geocode/json)
-    // Avoid calling expensive /place/nearbysearch/json ($32/1k) on every map pin drop.
-    // Geocoding API already resolves buildings, premises, and formatted addresses.
-    try {
-      final google = await _client
-          .reverseGeocode(lat, lon)
-          .timeout(const Duration(seconds: 4));
-      if (google != null && google.displayName.trim().isNotEmpty) {
-        return google;
-      }
-    } catch (e) {
-      if (kDebugMode) debugPrint('location_search_service.dart: ignored error: $e');
-    }
-
-    // 2. Free OpenStreetMap fallback
-    try {
-      return await NominatimGeocoder.reverseGeocode(lat, lon)
-          .timeout(const Duration(seconds: 6));
-    } catch (_) {
-      return null;
+  static void _putCache(String key, PlaceResult place) {
+    _reverseGeocodeCache[key] = place;
+    if (_reverseGeocodeCache.length > 100) {
+      _reverseGeocodeCache.remove(_reverseGeocodeCache.keys.first);
     }
   }
 }

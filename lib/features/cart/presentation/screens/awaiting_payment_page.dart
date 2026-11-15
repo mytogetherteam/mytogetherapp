@@ -431,26 +431,38 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
           paymentData = <String, dynamic>{};
         }
 
-        // Field name varies: `qr` (shop-payment-method), `qrImageUrl` (Prisma
-        // PaymentMethod) or `image`/`iconUrl` (legacy).
-        String? imageUrl = (paymentData['qr'] ??
-                paymentData['qrImageUrl'] ??
-                paymentData['iconUrl'] ??
-                paymentData['image'])
-            ?.toString();
+        // Only resolve actual QR fields (`qr` / `qrImageUrl`) for the QR image;
+        // never fall back to `iconUrl` (which is the bank's small logo icon).
+        String? qrUrl = (paymentData['qr'] ?? paymentData['qrImageUrl'])?.toString();
+        String? iconUrl = (paymentData['iconUrl'] ?? paymentData['image'])?.toString();
 
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          imageUrl = imageUrl.replaceAll('\\', '/');
-          if (imageUrl.startsWith('http://localhost') ||
-              imageUrl.startsWith('http://10.0.2.2')) {
-            imageUrl = imageUrl.replaceAll(
+        if (qrUrl != null && qrUrl.isNotEmpty) {
+          qrUrl = qrUrl.replaceAll('\\', '/');
+          if (qrUrl.startsWith('http://localhost') ||
+              qrUrl.startsWith('http://10.0.2.2')) {
+            qrUrl = qrUrl.replaceAll(
               RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
               ApiClient.baseUrl,
             );
-          } else if (!imageUrl.startsWith('http')) {
-            imageUrl = imageUrl.startsWith('/')
-                ? '${ApiClient.baseUrl}$imageUrl'
-                : '${ApiClient.baseUrl}/$imageUrl';
+          } else if (!qrUrl.startsWith('http')) {
+            qrUrl = qrUrl.startsWith('/')
+                ? '${ApiClient.baseUrl}$qrUrl'
+                : '${ApiClient.baseUrl}/$qrUrl';
+          }
+        }
+
+        if (iconUrl != null && iconUrl.isNotEmpty) {
+          iconUrl = iconUrl.replaceAll('\\', '/');
+          if (iconUrl.startsWith('http://localhost') ||
+              iconUrl.startsWith('http://10.0.2.2')) {
+            iconUrl = iconUrl.replaceAll(
+              RegExp(r'http://(localhost|10\.0\.2\.2)(:\d+)?'),
+              ApiClient.baseUrl,
+            );
+          } else if (!iconUrl.startsWith('http')) {
+            iconUrl = iconUrl.startsWith('/')
+                ? '${ApiClient.baseUrl}$iconUrl'
+                : '${ApiClient.baseUrl}/$iconUrl';
           }
         }
         
@@ -458,7 +470,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
         String? accName = (paymentData['accountName'] ?? paymentData['name'] ?? paymentData['accountHolderName'])?.toString();
 
         ActiveOrderState.instance.updatePaymentMethodDetails(
-          imageUrl: imageUrl,
+          qrUrl: qrUrl,
+          imageUrl: iconUrl,
           accountNumber: accNumber,
           accountName: accName,
           orderId: widget.orderId,
@@ -2321,6 +2334,13 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
               shopImageUrl: shopImageUrl,
             ),
           ),
+        );
+      } else if (mounted) {
+        AppDialog.showToast(
+          context,
+          CallSession().lastErrorMessage ?? context.tr('order_status.could_not_call'),
+          gradient: AppColors.primaryGradient,
+          icon: Icons.phone_missed_rounded,
         );
       }
     }

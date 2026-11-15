@@ -181,7 +181,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   _buildField(
                     controller: _phoneController,
-                    label: context.tr('lost.phone_number'),
+                    label: context.tr('restaurant.phone_title'),
                     icon: PhosphorIcons.phone,
                     keyboardType: TextInputType.phone,
                     readOnly: true,

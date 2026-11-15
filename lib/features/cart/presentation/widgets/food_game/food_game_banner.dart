@@ -15,13 +15,18 @@ class FoodGameBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFBF1E4),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF3E5D4), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF78350F).withValues(alpha: 0.06),
-            blurRadius: 14,
+            color: const Color(0xFF78350F).withValues(alpha: 0.08),
+            blurRadius: 16,
             spreadRadius: 0,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: const Color(0xFF78350F).withValues(alpha: 0.04),
+            blurRadius: 4,
+            spreadRadius: 0,
+            offset: const Offset(0, 1),
           ),
         ],
       ),

@@ -191,7 +191,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
               )
             else
               SizedBox(
-                height: 268,
+                height: 244,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -241,7 +241,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
                   },
                 ),
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 4),
           ],
         );
       },
@@ -278,7 +278,7 @@ class _RestaurantsNearbySectionState extends State<RestaurantsNearbySection>
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 268,
+          height: 244,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),

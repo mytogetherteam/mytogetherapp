@@ -171,7 +171,9 @@ class _OmisePaymentSectionState extends State<OmisePaymentSection>
         _startPolling();
       }
     } else {
-      _initiatePayment(_selectedMethod);
+      // For TRUEMONEY, wait for the user to enter their phone number and tap Pay
+      _isLoading = false;
+      _errorMessage = null;
       _startPolling();
     }
   }
@@ -291,8 +293,12 @@ class _OmisePaymentSectionState extends State<OmisePaymentSection>
         final qrUrl = data['qrImageUrl']?.toString();
         final authUri = data['authorizeUri']?.toString();
         final chargeId = data['chargeId']?.toString();
+        final backendAmount = (data['amount'] as num?)?.toDouble();
 
         setState(() {
+          if (backendAmount != null && backendAmount > 0) {
+            widget.order.totalAmount = backendAmount;
+          }
           _qrImageUrl = qrUrl;
           _authorizeUri = authUri;
           _isLoading = false;

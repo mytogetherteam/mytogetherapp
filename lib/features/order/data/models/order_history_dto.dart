@@ -70,8 +70,12 @@ class OrderHistoryDto {
   final String? paymentMethodIconUrl;
   final String? paymentChannel;
 
+  bool get isCodPayment =>
+      (paymentChannel ?? '').toUpperCase() == 'COD';
+
   bool get isOmisePayment =>
-      (paymentChannel ?? '').toUpperCase() == 'OMISE' || isVerified;
+      !isCodPayment &&
+      ((paymentChannel ?? '').toUpperCase() == 'OMISE' || (isVerified && paymentChannel != 'SLIP'));
 
   OrderHistoryDto({
     required this.id,
@@ -231,9 +235,12 @@ class OrderHistoryDto {
           ? OrderReviewDto.fromJson(json['orderReview'] as Map<String, dynamic>)
           : null,
       hasChatConversation: json['hasChatConversation'] == true,
-      paymentMethodName: _paymentName(json['paymentMethod']),
-      paymentMethodIconUrl: _paymentIcon(json['paymentMethod']),
       paymentChannel: json['paymentChannel']?.toString() ?? json['payment_channel']?.toString(),
+      paymentMethodName: _paymentName(json['paymentMethod']) ??
+          ((json['paymentChannel']?.toString() ?? json['payment_channel']?.toString())?.toUpperCase() == 'COD'
+              ? 'Cash on Delivery'
+              : null),
+      paymentMethodIconUrl: _paymentIcon(json['paymentMethod']),
     );
   }
 

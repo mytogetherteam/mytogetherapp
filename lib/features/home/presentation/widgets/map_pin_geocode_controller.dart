@@ -43,7 +43,7 @@ class MapPinGeocodeController extends ChangeNotifier {
 
   /// Look up address for the initial pin position (runs once on screen open).
   Future<void> lookupInitialPosition(LatLng target) async {
-    if (addressTouched || addressController.text.trim().isNotEmpty) return;
+    if (addressTouched) return;
     await _reverseGeocode(target, force: true);
   }
 

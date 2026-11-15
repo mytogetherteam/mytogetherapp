@@ -55,7 +55,10 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       CallScreen.isVisibleNotifier.value = _visibleCount > 0;
     });
-    _connectedAt = DateTime.now();
+    _connectedAt = _call.connectedAt ?? DateTime.now();
+    if (_call.state.value == CallState.connected) {
+      _elapsed = DateTime.now().difference(_connectedAt);
+    }
 
     _pulseCtrl = AnimationController(
       vsync: this,
@@ -108,11 +111,14 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
       _stopRingingTone();
     }
     if (state == CallState.connected) {
-      _connectedAt = DateTime.now();
+      _connectedAt = _call.connectedAt ?? DateTime.now();
+      _elapsed = DateTime.now().difference(_connectedAt);
       setState(() {});
     } else if (state == CallState.idle || state == CallState.ended) {
       _scheduleDismiss();
-    } else if (state == CallState.rejected || state == CallState.noAnswer) {
+    } else if (state == CallState.rejected ||
+        state == CallState.busy ||
+        state == CallState.noAnswer) {
       setState(() {});
       _scheduleDismiss(delay: const Duration(seconds: 2));
     }
@@ -131,6 +137,8 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _ringPlayer.stop();
+    _ringPlayer.dispose();
     _visibleCount--;
     if (_visibleCount < 0) _visibleCount = 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -385,6 +393,11 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
         'Call Declined',
         style: GoogleFonts.inter(color: Colors.red.shade300, fontSize: 16, fontWeight: FontWeight.w500),
       );
+    } else if (state == CallState.busy) {
+      return Text(
+        'Shop Busy',
+        style: GoogleFonts.inter(color: Colors.orange.shade300, fontSize: 16, fontWeight: FontWeight.w500),
+      );
     } else if (state == CallState.noAnswer) {
       return Text('No Answer', style: GoogleFonts.inter(color: Colors.white60, fontSize: 16));
     } else if (state == CallState.ended) {
@@ -400,6 +413,7 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
       return _incomingControls();
     } else if (state == CallState.calling ||
         state == CallState.rejected ||
+        state == CallState.busy ||
         state == CallState.noAnswer) {
       return _outgoingControls();
     } else {

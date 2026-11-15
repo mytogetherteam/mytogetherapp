@@ -46,6 +46,8 @@ class GooglePlacesClient {
     }
   }
 
+  Future<PlaceResult?> nearbySearch(double lat, double lon) async => null;
+
   Future<PlaceResult?> getPlaceDetails(
     PlaceResult place, {
     String? sessionToken,

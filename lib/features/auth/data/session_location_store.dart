@@ -80,7 +80,7 @@ class SessionLocationStore {
   static Future<String?> addressNear(
     double lat,
     double lon, {
-    double maxMeters = 150,
+    double maxMeters = 35,
   }) async {
     final stored = await load();
     if (stored == null || stored.address.trim().isEmpty) return null;

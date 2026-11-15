@@ -40,6 +40,10 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 /// Conversations are keyed by [orderId] on the backend — shop and rider chat
 /// buttons both open this same thread for the active order.
 class ChatPage extends StatefulWidget {
+  /// The orderId of the ChatPage currently open, or null if no ChatPage is visible.
+  static int? activeOrderId;
+  static bool get isChatOpen => activeOrderId != null;
+
   final int orderId;
   final String peerName;
   final String peerSubtitle;
@@ -87,6 +91,7 @@ class _ChatPageState extends State<ChatPage>
   @override
   void initState() {
     super.initState();
+    ChatPage.activeOrderId = widget.orderId;
     WidgetsBinding.instance.addObserver(this);
     _conversationId = 0;
     WebSocketService().connect();
@@ -114,24 +119,30 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void didPush() {
+    ChatPage.activeOrderId = widget.orderId;
     // Entered ChatPage -> Hide chat head
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
   }
 
   @override
   void didPopNext() {
+    ChatPage.activeOrderId = widget.orderId;
     // Returned to ChatPage -> Hide chat head
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
   }
 
   @override
   void didPushNext() {
+    ChatPage.activeOrderId = null;
     // Opened another page from ChatPage -> Show chat head
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
 
   @override
   void didPop() {
+    if (ChatPage.activeOrderId == widget.orderId) {
+      ChatPage.activeOrderId = null;
+    }
     // Exited ChatPage -> Show chat head
     Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
@@ -151,6 +162,9 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void dispose() {
+    if (ChatPage.activeOrderId == widget.orderId) {
+      ChatPage.activeOrderId = null;
+    }
     App.routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _voiceRecorder.dispose();
@@ -869,6 +883,15 @@ class _ChatPageState extends State<ChatPage>
                     ),
                   ),
                 );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      CallSession().lastErrorMessage ??
+                          'Could not start the call. Please try again.',
+                    ),
+                  ),
+                );
               }
             },
           ),
@@ -1120,6 +1143,15 @@ class _ChatPageState extends State<ChatPage>
                     builder: (_) => CallScreen(
                       shopName: widget.peerName,
                       shopImageUrl: widget.avatarUrl,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      CallSession().lastErrorMessage ??
+                          'Could not start the call. Please try again.',
                     ),
                   ),
                 );

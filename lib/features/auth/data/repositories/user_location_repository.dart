@@ -38,7 +38,9 @@ class UserLocationRepository extends ChangeNotifier {
   void setActiveLocation(UserLocationModel location) {
     if (_activeLocation?.id == location.id &&
         _activeLocation?.latitude == location.latitude &&
-        _activeLocation?.longitude == location.longitude) {
+        _activeLocation?.longitude == location.longitude &&
+        _activeLocation?.address == location.address &&
+        _activeLocation?.buildingName == location.buildingName) {
       return;
     }
     _activeLocation = location;
@@ -248,12 +250,23 @@ class UserLocationRepository extends ChangeNotifier {
         );
       }
 
+      // Pass the best place name (condo / building / POI) as buildingName so
+      // food_header.dart shows it at the top instead of falling back to the
+      // district name ("แขวงคลองจั่น"). nominatim_geocoder._bestName() already
+      // prioritises building/neighbourhood keys over road/district.
+      final buildingNameForSession =
+          (result?.name != null && result!.name.trim().isNotEmpty)
+              ? result.name.trim()
+              : null;
+
+
       setActiveLocation(
         UserLocationModel(
           id: -1,
           latitude: lat,
           longitude: lon,
           address: address.isNotEmpty ? address : null,
+          buildingName: buildingNameForSession,
           locationType: 'OTHER',
           isPrimary: true,
         ),
@@ -265,39 +278,40 @@ class UserLocationRepository extends ChangeNotifier {
   }
 
   /// Single source of truth for coordinates used by nearby/explore feeds.
-  /// Guests use session current location → device GPS → app default.
-  /// Signed-in users use their selected delivery location (saved or session GPS).
+  /// 1. Set Location: Uses user's selected delivery location (saved primary or manual pin).
+  /// 2. Current Location: If no saved address exists, falls back to device GPS.
+  /// 3. Default Location: If GPS is unavailable/denied, uses app default (Bangkok).
   Future<({double lat, double lon})> resolveActiveCoordinates() async {
     var active = _activeLocation;
     if (active?.latitude == null || active?.longitude == null) {
-      if (_isGuest) {
+      if (!_isGuest) {
+        try {
+          active = await getPrimaryLocation();
+        } catch (_) {
+          // Network error or no saved locations — fall through.
+        }
+      }
+      // If no saved primary location (guest or newly registered user), resolve device GPS
+      if (active?.latitude == null || active?.longitude == null) {
         await ensureSessionCurrentLocationFromDevice(
           requestPermissionIfDenied: true,
         );
         active = _activeLocation;
-      } else {
-        try {
-          active = await getPrimaryLocation();
-        } catch (_) {
-          // Not logged in / network error — fall through.
-        }
       }
     }
     if (active?.latitude != null && active?.longitude != null) {
       return (lat: active!.latitude!, lon: active.longitude!);
     }
-    if (_isGuest) {
-      try {
-        final pos = await LocationService().getCurrentPosition(
-          requestPermissionIfDenied: true,
-          forceRefresh: true,
-        );
-        if (LocationService().hasRealPosition) {
-          return (lat: pos.latitude, lon: pos.longitude);
-        }
-      } catch (e) {
-        if (kDebugMode) debugPrint('user_location_repository.dart: ignored error: $e');
+    try {
+      final pos = await LocationService().getCurrentPosition(
+        requestPermissionIfDenied: true,
+        forceRefresh: true,
+      );
+      if (LocationService().hasRealPosition) {
+        return (lat: pos.latitude, lon: pos.longitude);
       }
+    } catch (e) {
+      if (kDebugMode) debugPrint('user_location_repository.dart: ignored error: $e');
     }
     return (
       lat: LocationService.defaultLat,

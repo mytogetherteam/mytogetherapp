@@ -12,9 +12,7 @@ import 'news_comments_sheet.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
 import '../../data/models/news_item.dart';
 import '../../data/repositories/news_repository.dart';
-import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import '../screens/news_detail_page.dart';
-import '../../../auth/presentation/screens/auth_entry_page.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/auth/guest_auth_guard.dart';
@@ -67,9 +65,7 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
 
     try {
       final id = widget.item.entityId!;
-      final result = widget.item.source == FeedSource.news
-          ? await NewsRepository.instance.toggleLike(id)
-          : await ItemPostRepository.instance.toggleLike(id);
+      final result = await NewsRepository.instance.toggleLike(id);
       if (!mounted) return;
       setState(() {
         _isLiked = result.liked;
@@ -87,13 +83,6 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
   }
 
   void _openDetail({bool autoFocusComment = false}) {
-    if (widget.item.source == FeedSource.itemPost && GuestAuthGuard.isGuest) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AuthEntryPage()),
-      );
-      return;
-    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -387,12 +376,6 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
                                 ),
                               ),
                             ),
-                            if (widget.item.itemPostType != null) ...[
-                              const SizedBox(width: 8),
-                              _ItemPostTypeBadge(
-                                type: widget.item.itemPostType!,
-                              ),
-                            ],
                             const Spacer(),
                             if (widget.item.phoneNumber != null)
                               const SizedBox(width: 80, height: 30),
@@ -789,52 +772,6 @@ class _NewsFeedItemState extends State<NewsFeedItem> {
         ),
         const Divider(height: 1, thickness: 0.5, color: Color(0xFFEEEEEE)),
       ],
-    );
-  }
-}
-
-/// Small pill that labels a Lost & Found post as LOST or FOUND.
-class _ItemPostTypeBadge extends StatelessWidget {
-  final String type;
-
-  const _ItemPostTypeBadge({required this.type});
-
-  @override
-  Widget build(BuildContext context) {
-    final isFound = type.toUpperCase() == 'FOUND';
-    final Color color = isFound ? const Color(0xFF48BB78) : AppColors.primary;
-    final String label = isFound
-        ? context.tr('lost.badge_found')
-        : context.tr('lost.badge_lost');
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isFound
-                ? PhosphorIcons.checkCircleFill
-                : PhosphorIcons.magnifyingGlassFill,
-            size: 11,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: AppFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: color,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

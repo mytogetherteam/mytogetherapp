@@ -35,8 +35,6 @@ import '../../../cart/data/active_order_state.dart';
 import '../../../order/presentation/screens/order_history_page.dart';
 import 'package:mytogetherapp/features/social/presentation/screens/my_posts_page.dart';
 import 'auth_entry_page.dart';
-import 'payment_methods_page.dart';
-import '../../../cart/data/saved_card_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -58,7 +56,6 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     NavigationController.instance.currentIndex.addListener(_onTabChanged);
-    SavedCardService.instance.loadCards();
     _initAppVersion();
     _fetchBackgroundTheme();
     _loadReferralProgress();
@@ -69,7 +66,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (NavigationController.instance.currentIndex.value == 4) {
       _loadReferralProgress();
       _fetchUserProfile();
-      SavedCardService.instance.loadCards();
       if (mounted) setState(() {});
     }
   }
@@ -162,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final isGuest = GuestAuthGuard.isGuest;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
           RefreshIndicator(
@@ -171,126 +167,34 @@ class _ProfilePageState extends State<ProfilePage> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
-              children: [
-                if (isGuest) ...[
-                  _buildGuestHeader(context),
-                ] else ...[
-                  _buildProfileHeader(context, user),
-                ],
-            _buildOptionTile(
-              icon: PhosphorIcons.bellRinging,
-              title: context.tr('profile.app_permissions'),
-              subtitle: context.tr('profile.app_permissions_sub'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AppPermissionsPage()),
-              ),
-            ),
-            _buildOptionTile(
-              icon: PhosphorIcons.translate,
-              title: context.tr('profile.language'),
-              subtitle: LocaleController.instance.language.nativeName,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LanguagePage()),
-                );
-                if (mounted) setState(() {});
-              },
-            ),
-            _buildOptionTile(
-              icon: PhosphorIcons.question,
-              title: context.tr('profile.help_center'),
-              subtitle: context.tr('profile.help_center_sub'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HelpSupportPage()),
-              ),
-            ),
-            _buildOptionTile(
-              icon: PhosphorIcons.shieldCheck,
-              title: context.tr('profile.privacy_policy'),
-              onTap: () => _launchUrl('https://www.mytogether.org/privacy-policy/user'),
-            ),
-            
-            const SizedBox(height: 20),
-
-            // Logout Button — blocked while an order is active.
-            if (!isGuest)
-              ListenableBuilder(
-                listenable: ActiveOrderState.instance,
-                builder: (context, _) {
-                  final blocked = ActiveOrderState.instance.hasActiveOrder;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
-                    child: GestureDetector(
-                      onTap: () => blocked
-                          ? _showLogoutBlockedDialog(context)
-                          : _handleLogout(context),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: blocked ? Colors.grey.shade100 : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: blocked
-                                ? Colors.grey.shade300
-                                : Colors.red.shade100,
-                          ),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                context.tr('profile.logout'),
-                                style: AppFonts.poppins(
-                                  color: blocked
-                                      ? Colors.grey.shade400
-                                      : Colors.red,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              if (blocked) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  context.tr(
-                                      'profile.logout_active_order_hint'),
-                                  textAlign: TextAlign.center,
-                                  style: AppFonts.poppins(
-                                    color: Colors.grey.shade500,
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                children: [
+                  if (isGuest) ...[
+                    _buildGuestHeader(context),
+                  ] else ...[
+                    _buildProfileHeader(context, user),
+                    _buildAccountSection(context),
+                    _buildActivitySection(context),
+                  ],
+                  _buildPreferencesSection(context),
+                  const SizedBox(height: 8),
+                  if (!isGuest) _buildLogoutButton(context),
+                  const SizedBox(height: 24),
+                  if (_appVersion.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 40),
+                      child: Text(
+                        '${context.tr('profile.app_version')} $_appVersion',
+                        style: AppFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF94A3B8),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    )
+                  else
+                    const SizedBox(height: 40),
+                ],
               ),
-            if (_appVersion.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: Text(
-                  '${context.tr('profile.app_version')} $_appVersion',
-                  style: AppFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              )
-            else
-              const SizedBox(height: 40),
-          ],
-        ),
-      ),
+            ),
           ),
       // Fixed Nav Header
       Positioned(
@@ -399,43 +303,74 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildGuestHeader(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 72,
+        top: MediaQuery.of(context).padding.top + 60,
         left: 20,
         right: 20,
         bottom: 8,
       ),
       child: Column(
         children: [
-          Icon(PhosphorIcons.gearSix, size: 48, color: AppColors.primary),
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1F2),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFFE4E6), width: 2),
+            ),
+            child: const Icon(
+              PhosphorIcons.userCircle,
+              size: 42,
+              color: AppColors.primary,
+            ),
+          ),
           const SizedBox(height: 16),
           Text(
             context.tr('nav.settings'),
             style: AppFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: const Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             context.tr('guest.settings_subtitle'),
             textAlign: TextAlign.center,
             style: AppFonts.poppins(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: 13,
+              color: const Color(0xFF64748B),
               height: 1.4,
             ),
           ),
           const SizedBox(height: 20),
-          _buildOptionTile(
-            icon: PhosphorIcons.userPlus,
-            title: context.tr('auth.register_account'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFFE2E8F0).withValues(alpha: 0.7),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _buildModernTile(
+              icon: PhosphorIcons.userPlus,
+              title: context.tr('auth.register_account'),
+              showDivider: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthEntryPage()),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
@@ -449,22 +384,48 @@ class _ProfilePageState extends State<ProfilePage> {
           alignment: Alignment.center,
           children: [
             ClipRect(
-              child: Container(
-                height: 120,
+              child: SizedBox(
+                height: 140,
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
-                      ? DecorationImage(
-                          image: CachedNetworkImageProvider(_bgImageUrl!),
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                        )
-                      : const DecorationImage(
-                          image: AssetImage('assets/images/top-bannner.jpg'),
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        image: (_bgImageUrl != null && _bgImageUrl!.isNotEmpty)
+                            ? DecorationImage(
+                                image: CachedNetworkImageProvider(_bgImageUrl!),
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                              )
+                            : const DecorationImage(
+                                image: AssetImage('assets/images/top-bannner.jpg'),
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                              ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              const Color(0xFFF8FAFC).withValues(alpha: 0.0),
+                              const Color(0xFFF8FAFC).withValues(alpha: 0.25),
+                              const Color(0xFFF8FAFC).withValues(alpha: 0.65),
+                              const Color(0xFFF8FAFC).withValues(alpha: 0.92),
+                              const Color(0xFFF8FAFC),
+                            ],
+                            stops: const [0.0, 0.3, 0.55, 0.75, 0.9, 1.0],
+                          ),
                         ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -485,7 +446,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
-        const SizedBox(height: 60),
+        const SizedBox(height: 56),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () async {
@@ -500,26 +461,175 @@ class _ProfilePageState extends State<ProfilePage> {
               Text(
                 user?.fullName ?? user?.username ?? context.tr('common.user_name'),
                 style: AppFonts.poppins(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: const Color(0xFF0F172A),
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 user?.email ?? 'email@example.com',
                 style: AppFonts.poppins(
-                  fontSize: 14,
-                  color: Colors.grey[600],
+                  fontSize: 13,
+                  color: const Color(0xFF64748B),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        _buildOptionTile(
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 6, bottom: 8, top: 4),
+            child: Text(
+              title,
+              style: AppFonts.poppins(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFFE2E8F0).withValues(alpha: 0.7),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernTile({
+    required IconData icon,
+    Color? iconColor,
+    Color? iconBgColor,
+    required String title,
+    String? subtitle,
+    Widget? customSubtitle,
+    Widget? trailingWidget,
+    required VoidCallback onTap,
+    bool showDivider = true,
+  }) {
+    // Primary theme color styling: soft rose/pink tint background with brand gradient icon
+    final effectiveIconBg = iconBgColor ?? const Color(0xFFFFF0F5);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: effectiveIconBg,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    alignment: Alignment.center,
+                    child: iconColor != null
+                        ? Icon(icon, color: iconColor, size: 20)
+                        : GradientIcon(icon: icon, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: AppFonts.poppins(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        if (customSubtitle != null) ...[
+                          const SizedBox(height: 3),
+                          customSubtitle,
+                        ] else if (subtitle != null && subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: AppFonts.poppins(
+                              fontSize: 11.5,
+                              color: const Color(0xFF64748B),
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (trailingWidget != null) ...[
+                    trailingWidget,
+                    const SizedBox(width: 4),
+                  ],
+                  const Icon(
+                    PhosphorIcons.caretRight,
+                    size: 16,
+                    color: Color(0xFFCBD5E1),
+                  ),
+                ],
+              ),
+            ),
+            if (showDivider)
+              const Divider(
+                height: 1,
+                thickness: 0.6,
+                indent: 68,
+                endIndent: 16,
+                color: Color(0xFFF1F5F9),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountSection(BuildContext context) {
+    return _buildSection(
+      title: context.tr('profile.section_account'),
+      children: [
+        _buildModernTile(
           icon: PhosphorIcons.gearSix,
           title: context.tr('profile.account_settings'),
-          subtitle: context.tr('profile.account_settings_sub'),
           onTap: () async {
             await Navigator.push(
               context,
@@ -528,49 +638,10 @@ class _ProfilePageState extends State<ProfilePage> {
             if (mounted) setState(() {});
           },
         ),
-        _buildOptionTile(
-          icon: PhosphorIcons.creditCard,
-          title: context.tr('profile.payment_methods'),
-          subtitle: context.tr('profile.payment_methods_sub'),
-          onTap: () async {
-            await PaymentMethodsPage.open(context);
-            if (mounted) setState(() {});
-          },
-        ),
-        _buildOptionTile(
-          icon: PhosphorIcons.squaresFour,
-          title: context.tr('profile.my_posts'),
-          subtitle: context.tr('profile.my_posts_sub'),
-          onTap: () => MyPostsPage.open(context),
-        ),
-        _buildOptionTile(
-          icon: PhosphorIcons.heart,
-          title: context.tr('profile.saved_items'),
-          subtitle: context.tr('profile.saved_items_sub'),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const WishlistPage()),
-          ),
-        ),
-        _buildOptionTile(
-          icon: PhosphorIcons.receipt,
-          title: context.tr('nav.orders'),
-          subtitle: context.tr('profile.order_history_sub'),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
-          ),
-        ),
-        _buildOptionTile(
-          icon: PhosphorIcons.ticket,
-          title: context.tr('profile.saved_coupons'),
-          subtitle: context.tr('profile.saved_coupons_sub'),
-          onTap: () => SavedCouponsPage.open(context),
-        ),
-        _buildReferralTile(),
-        _buildOptionTile(
+        _buildModernTile(
           icon: PhosphorIcons.mapPin,
           title: context.tr('profile.my_addresses'),
+          showDivider: false,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const LocationSearchPage()),
@@ -580,55 +651,52 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-
-
-  Widget _buildReferralTile() {
+  Widget _buildActivitySection(BuildContext context) {
     final code = _referralStatus?.myCode;
     final goal = _referralStatus?.referrerTargetCount;
     final hasProgress = code != null;
     final earned = hasProgress && goal != null && code.usedCount >= goal;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return _buildSection(
+      title: context.tr('profile.section_activity'),
+      children: [
+        _buildModernTile(
+          icon: PhosphorIcons.receipt,
+          title: context.tr('nav.orders'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
+          ),
         ),
-        child: ListTile(
+        _buildModernTile(
+          icon: PhosphorIcons.squaresFour,
+          title: context.tr('profile.my_posts'),
+          onTap: () => MyPostsPage.open(context),
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.heart,
+          title: context.tr('profile.saved_items'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WishlistPage()),
+          ),
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.ticket,
+          title: context.tr('profile.saved_coupons'),
+          onTap: () => SavedCouponsPage.open(context),
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.gift,
+          title: context.tr('profile.referral_promote'),
+          customSubtitle: hasProgress ? _referralProgress(code.usedCount, goal, earned) : null,
+          showDivider: false,
           onTap: () async {
             await ReferralPage.open(context);
             if (mounted) _loadReferralProgress();
           },
-          isThreeLine: hasProgress && goal != null,
-          leading: GradientIcon(icon: PhosphorIcons.gift),
-          title: Text(
-            context.tr('profile.referral_promote'),
-            style: AppFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          subtitle: hasProgress
-              ? _referralProgress(code.usedCount, goal, earned)
-              : Text(
-                  context.tr('profile.referral_promote_sub'),
-                  style: AppFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                  ),
-                ),
-          trailing: Icon(PhosphorIcons.caretRight, size: 18, color: Colors.grey),
         ),
-      ),
+      ],
     );
   }
 
@@ -670,49 +738,166 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildPreferencesSection(BuildContext context) {
+    return _buildSection(
+      title: context.tr('profile.section_preferences'),
+      children: [
+        _buildModernTile(
+          icon: PhosphorIcons.bellRinging,
+          title: context.tr('profile.app_permissions'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AppPermissionsPage()),
+          ),
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.translate,
+          title: context.tr('profile.language'),
+          trailingWidget: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0F5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              LocaleController.instance.language.nativeName,
+              style: AppFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LanguagePage()),
+            );
+            if (mounted) setState(() {});
+          },
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.question,
+          title: context.tr('profile.help_center'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HelpSupportPage()),
+          ),
+        ),
+        _buildModernTile(
+          icon: PhosphorIcons.shieldCheck,
+          title: context.tr('profile.privacy_policy'),
+          showDivider: false,
+          onTap: () => _launchUrl('https://www.mytogether.org/privacy-policy/user'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return ListenableBuilder(
+      listenable: ActiveOrderState.instance,
+      builder: (context, _) {
+        final blocked = ActiveOrderState.instance.hasActiveOrder;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => blocked
+                  ? _showLogoutBlockedDialog(context)
+                  : _handleLogout(context),
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: blocked ? const Color(0xFFF1F5F9) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: blocked
+                        ? const Color(0xFFE2E8F0)
+                        : const Color(0xFFFEE2E2),
+                    width: 1,
+                  ),
+                  boxShadow: blocked
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            PhosphorIcons.signOut,
+                            size: 19,
+                            color: blocked
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFFEF4444),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.tr('profile.logout'),
+                            style: AppFonts.poppins(
+                              color: blocked
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFFEF4444),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (blocked) ...[
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            context.tr('profile.logout_active_order_hint'),
+                            textAlign: TextAlign.center,
+                            style: AppFonts.poppins(
+                              color: const Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildOptionTile({
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ListTile(
-          onTap: onTap,
-          leading: GradientIcon(icon: icon),
-          title: Text(
-            title,
-            style: AppFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          subtitle: subtitle != null
-              ? Text(
-                  subtitle,
-                  style: AppFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                  ),
-                )
-              : null,
-          trailing: Icon(PhosphorIcons.caretRight, size: 18, color: Colors.grey),
-        ),
-      ),
+    return _buildModernTile(
+      icon: icon,
+      iconColor: AppColors.primary,
+      iconBgColor: const Color(0xFFFFF1F2),
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
+      showDivider: false,
     );
   }
 

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import '../../../core/auth/auth_service.dart';
@@ -7,6 +8,7 @@ import '../../home/data/models/trending_item_dto.dart';
 import 'models/search_shop_dto.dart';
 import 'models/search_filters.dart';
 import 'models/location_ref_dto.dart';
+import 'models/ai_search_parsed_result.dart';
 
 /// Talks to the authenticated user search & shop-profile endpoints on the
 /// NestJS backend (`dev` branch):
@@ -316,6 +318,165 @@ class SearchRepository {
     return _parseLocationContent(response.data)
         .map(DistrictDto.fromJson)
         .toList();
+  }
+
+  /// Fast on-device client heuristics for instant 0ms, zero-cost intent parsing.
+  static AiSearchParsedResult extractClientHeuristics(String rawQuery) {
+    var search = rawQuery.trim();
+    bool? isSpicy;
+    bool? isVegetarian;
+    bool? isHalal;
+    String? mealType;
+    bool? topRated;
+    final labels = <String>[];
+
+    // Dinner / Night food
+    if (RegExp(r'(ညစာ|ညဉ့်နက်|ညပိုင်း|dinner|night\s*food|late\s*night|night\s*time|\bnight\b|\bည\b)', caseSensitive: false).hasMatch(search)) {
+      mealType = 'dinner';
+      labels.add('ညစာ (Dinner)');
+      search = search.replaceAll(RegExp(r'(ညစာ|ညဉ့်နက်|ညပိုင်း|dinner|night\s*food|late\s*night|night\s*time|\bnight\b|\bည\b)', caseSensitive: false), '');
+    } else if (RegExp(r'(မနက်စာ|မနက်ပိုင်း|breakfast|morning\s*food|\bmorning\b|\bမနက်\b)', caseSensitive: false).hasMatch(search)) {
+      mealType = 'breakfast';
+      labels.add('မနက်စာ (Breakfast)');
+      search = search.replaceAll(RegExp(r'(မနက်စာ|မနက်ပိုင်း|breakfast|morning\s*food|\bmorning\b|\bမနက်\b)', caseSensitive: false), '');
+    } else if (RegExp(r'(နေ့လယ်စာ|နေ့လည်စာ|lunch|afternoon\s*food|lunch\s*food|\bနေ့လယ်\b)', caseSensitive: false).hasMatch(search)) {
+      mealType = 'lunch';
+      labels.add('နေ့လယ်စာ (Lunch)');
+      search = search.replaceAll(RegExp(r'(နေ့လယ်စာ|နေ့လည်စာ|lunch\s*food|\blunch\b|\bနေ့လယ်\b)', caseSensitive: false), '');
+    } else if (RegExp(r'(အဆာပြေ|လက်ဖက်ရည်|snack|tea\s*time|snack\s*food|dessert)', caseSensitive: false).hasMatch(search)) {
+      mealType = 'snack';
+      labels.add('အဆာပြေ (Snack)');
+      search = search.replaceAll(RegExp(r'(အဆာပြေ|လက်ဖက်ရည်|snack\s*food|\bsnack\b|dessert)', caseSensitive: false), '');
+    }
+
+    // Spicy / Mild
+    if (RegExp(r'(အစပ်မပါ|မစပ်တာ|မစပ်ဘဲ|မစပ်တဲ့|အစပ်မကြိုက်|not\s*spicy|non\s*spicy|mild|no\s*chili|no\s*spice)', caseSensitive: false).hasMatch(search)) {
+      isSpicy = false;
+      labels.add('အစပ်မပါ (Mild)');
+      search = search.replaceAll(RegExp(r'(အစပ်မပါ(သော|တဲ့)?|မစပ်တာ|မစပ်ဘဲ|မစပ်တဲ့|အစပ်မကြိုက်|not\s*spicy|non\s*spicy|mild|no\s*chili|no\s*spice)', caseSensitive: false), '');
+    } else if (RegExp(r'(အစပ်|စပ်စပ်|စပ်တာ|spicy|hot)', caseSensitive: false).hasMatch(search)) {
+      isSpicy = true;
+      labels.add('အစပ် (Spicy)');
+      search = search.replaceAll(RegExp(r'(အစပ်|စပ်စပ်|စပ်တာ|\bspicy\b|\bhot\b)', caseSensitive: false), '');
+    }
+
+    // Vegetarian
+    if (RegExp(r'(သက်သတ်လွတ်|vegetarian|veggie|vegan)', caseSensitive: false).hasMatch(search)) {
+      isVegetarian = true;
+      labels.add('သက်သတ်လွတ်');
+      search = search.replaceAll(RegExp(r'(သက်သတ်လွတ်|vegetarian|veggie|vegan)', caseSensitive: false), '');
+    }
+
+    // Halal
+    if (RegExp(r'(ဟာလာလ်|ဟာလာ|halal)', caseSensitive: false).hasMatch(search)) {
+      isHalal = true;
+      labels.add('ဟာလာလ် (Halal)');
+      search = search.replaceAll(RegExp(r'(ဟာလာလ်|ဟာလာ|halal)', caseSensitive: false), '');
+    }
+
+    // Top rated / Famous
+    if (RegExp(r'(အကောင်းဆုံး|နာမည်ကြီး|လူကြိုက်အများဆုံး|top\s*rated|best|popular|famous)', caseSensitive: false).hasMatch(search)) {
+      topRated = true;
+      labels.add('နာမည်ကြီး (Popular)');
+      search = search.replaceAll(RegExp(r'(အကောင်းဆုံး|နာမည်ကြီး|လူကြိုက်အများဆုံး|top\s*rated|best|popular|famous)', caseSensitive: false), '');
+    }
+
+    // Clean up generic filler words in both Myanmar and English
+    search = search
+        .replaceAll(RegExp(r'(\bfood\b|\bdishes\b|\bdish\b|\bmeals\b|\bmeal\b|\brestaurant\b|\brestaurants\b|စားချင်တယ်|လိုချင်တယ်|ရနိုင်မယ့်|အတွက်|ကလေးတွေ|ကလေး|ဆိုင်|ရှာပေးပါ|အစားအသောက်|ဟင်း|စားစရာ)', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    return AiSearchParsedResult(
+      search: search.isNotEmpty ? search : (labels.isNotEmpty ? '' : rawQuery.trim()),
+      isSpicy: isSpicy,
+      isVegetarian: isVegetarian,
+      isHalal: isHalal,
+      mealType: mealType,
+      topRated: topRated,
+      intentLabel: labels.isNotEmpty ? labels.join(' · ') : null,
+    );
+  }
+
+  /// Parses natural language query into intent and filters using backend AI service.
+  /// Free tier + in-memory cached. Fallback to direct Gemini and basic query.
+  Future<AiSearchParsedResult> parseNaturalLanguageQuery(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return AiSearchParsedResult.fallback('');
+    }
+
+    // 1. Instant local client heuristic (0ms, 0 cost, works offline / before deploy)
+    final localResult = extractClientHeuristics(trimmed);
+    if (localResult.hasAnyFilter) {
+      return localResult;
+    }
+
+    // Single-word check: avoid network call if query is a simple word without conversational context
+    final words = trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final hasConversationalWords = RegExp(
+      r'(မပါ|မကြိုက်|ကြိုက်|စားချင်|လိုချင်|ရနိုင်|အကောင်းဆုံး|အတွက်|နဲ့|food|near|best|spicy)',
+      caseSensitive: false,
+    ).hasMatch(trimmed);
+
+    if (words.length <= 1 && !hasConversationalWords) {
+      return AiSearchParsedResult.fallback(trimmed);
+    }
+
+    // 2. Try backend AI service
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiClient.apiPrefix}/user/search/ai-parse',
+        queryParameters: {'q': trimmed},
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['data'] is Map<String, dynamic>) {
+        final parsed = AiSearchParsedResult.fromJson(data['data'] as Map<String, dynamic>);
+        if (parsed.hasAnyFilter || parsed.search.isNotEmpty) {
+          return parsed;
+        }
+      }
+    } catch (_) {
+      // Backend not yet reachable or not yet deployed to cloud
+    }
+
+    // 3. Direct Gemini 1.5 Flash client fallback (guarantees AI search works anywhere right now)
+    try {
+      const geminiKey = 'AIzaSyBwCrKBa7V-QXJCiTN12urmEiKZSqSf7tA';
+      final dio = Dio();
+      final prompt = 'Parse food query: "$trimmed" into JSON: {"search": string, "isSpicy": boolean|null, "isVegetarian": boolean|null, "isHalal": boolean|null, "mealType": "breakfast"|"lunch"|"dinner"|"snack"|null, "topRated": boolean|null, "intentLabel": string}';
+      final geminiResp = await dio.post(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey',
+        data: {
+          'contents': [
+            {
+              'parts': [
+                {'text': prompt}
+              ]
+            }
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'maxOutputTokens': 150,
+            'responseMimeType': 'application/json',
+          },
+        },
+        options: Options(
+          sendTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final rawText = geminiResp.data?['candidates']?[0]?['content']?['parts']?[0]?['text'];
+      if (rawText != null) {
+        final Map<String, dynamic> parsedJson = jsonDecode(rawText as String);
+        return AiSearchParsedResult.fromJson(parsedJson);
+      }
+    } catch (_) {
+      // Fallback
+    }
+
+    return localResult;
   }
 
   /// Extracts the `data.content` list shared by the cities/districts/cuisine

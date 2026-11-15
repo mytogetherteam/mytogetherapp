@@ -82,27 +82,42 @@ class GooglePlacesClient {
     try {
       final response = await _dio.get('/place/nearbysearch/json', queryParameters: {
         'location': '$lat,$lon',
-        'rankby': 'distance',
-        'type': 'point_of_interest',
+        'radius': 50,
         'key': _apiKey,
         'language': 'en',
       });
       if (response.statusCode == 200 && response.data['status'] == 'OK') {
         final results = response.data['results'] as List<dynamic>? ?? [];
+        final candidates = <PlaceResult>[];
         for (final r in results) {
           final res = r as Map<String, dynamic>;
           final types = (res['types'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
           // Skip generic routes and localities, we want buildings or establishments
-          if (types.contains('route') || types.contains('locality') || types.contains('political')) continue;
-          
-          if (types.contains('establishment') || types.contains('point_of_interest') || types.contains('premise') || types.contains('building')) {
-             final place = PlaceResult.fromGoogleNearbySearch(res, userLat: lat, userLon: lon);
-             if (place.distanceKm != null && place.distanceKm! > 0.05) {
-               // Too far (> 50m), don't snap to it
-               continue;
-             }
-             return place;
+          if (types.contains('route') ||
+              types.contains('locality') ||
+              types.contains('political') ||
+              types.contains('sublocality') ||
+              types.contains('administrative_area_level_1') ||
+              types.contains('administrative_area_level_2')) {
+            continue;
           }
+          
+          if (types.contains('establishment') ||
+              types.contains('point_of_interest') ||
+              types.contains('premise') ||
+              types.contains('building') ||
+              types.contains('condominium_complex') ||
+              types.contains('lodging') ||
+              types.contains('real_estate_agency')) {
+             final place = PlaceResult.fromGoogleNearbySearch(res, userLat: lat, userLon: lon);
+             if (place.distanceKm != null && place.distanceKm! <= 0.05) {
+               candidates.add(place);
+             }
+          }
+        }
+        if (candidates.isNotEmpty) {
+          candidates.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
+          return candidates.first;
         }
       }
     } catch (e) {
@@ -210,6 +225,16 @@ class GooglePlacesClient {
                 types.contains('point_of_interest') ||
                 types.contains('premise') ||
                 types.contains('building')) {
+              final loc = res['geometry']?['location'] as Map<String, dynamic>?;
+              final resLat = double.tryParse(loc?['lat']?.toString() ?? '');
+              final resLon = double.tryParse(loc?['lng']?.toString() ?? '');
+              if (resLat != null && resLon != null) {
+                final dist = PlaceResult.haversine(lat, lon, resLat, resLon);
+                if (dist > 0.05) {
+                  // Don't snap to a premise further than 50 meters
+                  continue;
+                }
+              }
               bestResult = res;
               break;
             }

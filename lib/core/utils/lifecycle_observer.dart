@@ -10,6 +10,7 @@ import '../../features/cart/data/active_order_state.dart';
 import '../../features/announcements/data/repositories/announcement_repository.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/chat/data/services/chat_unread_controller.dart';
+import '../../features/call/data/call_session.dart';
 
 class LifecycleObserver extends StatefulWidget {
   final Widget child;
@@ -58,9 +59,12 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
       return;
     }
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      WebSocketService().disconnect();
+    // Keep STOMP WebSocket connected while a call is active/ringing or during
+    // transient `inactive` states (e.g. permission dialogs, CallKit overlays).
+    if (state == AppLifecycleState.paused) {
+      if (CallSession().state.value == CallState.idle) {
+        WebSocketService().disconnect();
+      }
     } else if (state == AppLifecycleState.resumed) {
       _handleForegroundResumed();
     }
@@ -71,9 +75,10 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
     _isProcessingForeground = true;
 
     try {
-      // 1. SYNC: Always pull server truth via HTTP first
-      // This is the "unbreakable" part — FCM might have been missed,
-      // so we catch up here before resuming live stream.
+      // Reconnect WebSocket immediately so incoming call/order signaling isn't delayed by HTTP syncs
+      WebSocketService().connect();
+
+      // 1. SYNC: Always pull server truth via HTTP
       if (ActiveOrderState.instance.hasActiveOrder) {
         await ActiveOrderState.instance.syncActiveOrder();
       } else {
@@ -94,9 +99,6 @@ class _LifecycleObserverState extends State<LifecycleObserver> with WidgetsBindi
       if (activeOrderId != null) {
         ChatUnreadController.instance.refreshOrder(activeOrderId);
       }
-
-      // 2. RECONNECT: After sync, safe to listen for new events
-      WebSocketService().connect();
     } catch (_) {
       // Fail-safe: trigger a background sync attempt later if critical
     } finally {

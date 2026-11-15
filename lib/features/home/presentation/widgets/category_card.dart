@@ -9,6 +9,8 @@ class CategoryCard extends StatelessWidget {
   final String? badgeText;
   final bool isAnimatedBadge;
   final bool isComingSoon;
+  final Gradient? badgeGradient;
+  final Color? badgeGlowColor;
   final VoidCallback? onTap;
 
   const CategoryCard({
@@ -18,6 +20,8 @@ class CategoryCard extends StatelessWidget {
     this.badgeText,
     this.isAnimatedBadge = false,
     this.isComingSoon = false,
+    this.badgeGradient,
+    this.badgeGlowColor,
     this.onTap,
   });
 
@@ -85,11 +89,18 @@ class CategoryCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: isAnimatedBadge
-                      ? _PulsingBadge(text: badgeText!)
+                      ? _PulsingBadge(
+                          text: badgeText!,
+                          gradient: badgeGradient,
+                          glowColor: badgeGlowColor,
+                        )
                       : Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: badgeText!.length > 4 ? 6 : 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
+                            gradient: badgeGradient ?? AppColors.primaryGradient,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: Colors.white, width: 1.5),
                           ),
@@ -114,7 +125,14 @@ class CategoryCard extends StatelessWidget {
 
 class _PulsingBadge extends StatefulWidget {
   final String text;
-  const _PulsingBadge({required this.text});
+  final Gradient? gradient;
+  final Color? glowColor;
+
+  const _PulsingBadge({
+    required this.text,
+    this.gradient,
+    this.glowColor,
+  });
 
   @override
   State<_PulsingBadge> createState() => _PulsingBadgeState();
@@ -149,14 +167,17 @@ class _PulsingBadgeState extends State<_PulsingBadge>
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.text.length > 4 ? 6 : 8,
+          vertical: 2,
+        ),
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
+          gradient: widget.gradient ?? AppColors.primaryGradient,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
+              color: (widget.glowColor ?? AppColors.primary).withValues(alpha: 0.3),
               blurRadius: 4,
               spreadRadius: 1,
             ),

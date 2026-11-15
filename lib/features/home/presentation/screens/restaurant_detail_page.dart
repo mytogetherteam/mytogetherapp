@@ -141,6 +141,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
     _targetMenuItemId = widget.targetMenuItemId;
     _scrollController.addListener(_onScroll);
     _loadPastChoices();
@@ -843,11 +850,25 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     _promoAnimationController.dispose();
     // Clear shop context
     ActiveOrderState.instance.setCurrentShopId(null);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
     super.dispose();
   }
 
   @override
   void didPopNext() {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
     // This is called when the top route has been popped off, and this route shows up.
     // Re-trigger basket animation if it's currently showing
     if (_showBasket) {
@@ -859,18 +880,32 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
   void _onScroll() {
     if (_scrollController.hasClients) {
       final double offset = _scrollController.offset;
-      // Precise threshold for white app bar to appear
-      if (offset > 150) {
+      // Threshold for status bar icons to switch to dark
+      if (offset > 70) {
         if (!_isScrolled) {
           setState(() {
             _isScrolled = true;
           });
+          SystemChrome.setSystemUIOverlayStyle(
+            const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+            ),
+          );
         }
       } else {
         if (_isScrolled) {
           setState(() {
             _isScrolled = false;
           });
+          SystemChrome.setSystemUIOverlayStyle(
+            const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
+            ),
+          );
         }
       }
     }
@@ -890,10 +925,20 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final systemOverlayStyle = _isScrolled
+        ? const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          )
+        : const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _isScrolled
-          ? SystemUiOverlayStyle.dark
-          : SystemUiOverlayStyle.light,
+      value: systemOverlayStyle,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -909,88 +954,116 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     SliverAppBar(
-                      expandedHeight: 320,
+                      systemOverlayStyle: systemOverlayStyle,
+                      expandedHeight: 205,
                       pinned: false,
                       stretch: true,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: Colors.white,
                       elevation: 0,
                       automaticallyImplyLeading: false,
                       flexibleSpace: FlexibleSpaceBar(
-                        background: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(40),
-                          ),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              resolveMediaUrl(_currentRestaurant?.imagePath)
-                                      .isEmpty
-                                  ? Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.broken_image,
-                                          size: 50,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    )
-                                  : GestureDetector(
-                                      onTap: () {
-                                        final img = resolveMediaUrl(_currentRestaurant!.imagePath);
-                                        if (img.isNotEmpty) {
-                                          Navigator.push(
-                                            context,
-                                            PageRouteBuilder(
-                                              opaque: false,
-                                              barrierDismissible: true,
-                                              pageBuilder: (context, _, _) => FullScreenImageViewer(
-                                                imageUrls: [img],
-                                                initialIndex: 0,
-                                                heroTagPrefix: 'restaurant_banner_${widget.id}_',
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      child: CachedNetworkImage(memCacheWidth: 1080, 
-                                        imageUrl: resolveMediaUrl(
-                                          _currentRestaurant!.imagePath,
-                                        ),
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) =>
-                                            const ImageSkeletonLoader(),
-                                        errorWidget:
-                                            (context, url, error) =>
-                                                Container(
-                                                  color: Colors.grey[200],
-                                                  child: const Center(
-                                                    child: Icon(
-                                                      Icons.broken_image,
-                                                      size: 50,
-                                                      color: Colors.grey,
-                                                    ),
+                        background: AnimatedBuilder(
+                          animation: _scrollController,
+                          builder: (context, _) {
+                            double offset = 0;
+                            if (_scrollController.hasClients) {
+                              offset = _scrollController.offset;
+                            }
+                            // Slowly and smoothly fades out linked directly to the scroll up position
+                            final bannerProgress = (offset / 150.0).clamp(0.0, 1.0);
+                            final smoothBannerT = Curves.easeInOut.transform(bannerProgress);
+                            final bannerOpacity = 1.0 - smoothBannerT;
+                            final parallaxY = (offset * 0.28).clamp(0.0, 45.0);
+                            final bannerScale = 1.0 + (0.03 * smoothBannerT);
+
+                            return ColoredBox(
+                              color: Colors.white,
+                              child: Opacity(
+                                opacity: bannerOpacity,
+                                child: Transform.translate(
+                                  offset: Offset(0, parallaxY),
+                                  child: Transform.scale(
+                                    scale: bannerScale,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        resolveMediaUrl(_currentRestaurant?.imagePath)
+                                                .isEmpty
+                                            ? Container(
+                                                color: Colors.grey[200],
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    size: 50,
+                                                    color: Colors.grey,
                                                   ),
                                                 ),
-                                      ),
-                                    ),
-                              IgnorePointer(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.black.withValues(alpha: 0.5),
-                                        Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.3),
+                                              )
+                                            : GestureDetector(
+                                                onTap: () {
+                                                  final img = resolveMediaUrl(_currentRestaurant!.imagePath);
+                                                  if (img.isNotEmpty) {
+                                                    Navigator.push(
+                                                      context,
+                                                      PageRouteBuilder(
+                                                        opaque: false,
+                                                        barrierDismissible: true,
+                                                        pageBuilder: (context, _, _) => FullScreenImageViewer(
+                                                          imageUrls: [img],
+                                                          initialIndex: 0,
+                                                          heroTagPrefix: 'restaurant_banner_${widget.id}_',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                child: CachedNetworkImage(memCacheWidth: 1080, 
+                                                  imageUrl: resolveMediaUrl(
+                                                    _currentRestaurant!.imagePath,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) =>
+                                                      const ImageSkeletonLoader(),
+                                                  errorWidget:
+                                                      (context, url, error) =>
+                                                          Container(
+                                                            color: Colors.grey[200],
+                                                            child: const Center(
+                                                              child: Icon(
+                                                                Icons.broken_image,
+                                                                size: 50,
+                                                                color: Colors.grey,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                ),
+                                              ),
+                                        // Top subtle dark vignette for icons + Smooth bottom white fade effect
+                                        IgnorePointer(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.black.withValues(alpha: 0.40),
+                                                  Colors.transparent,
+                                                  Colors.transparent,
+                                                  Colors.white.withValues(alpha: 0.40),
+                                                  Colors.white,
+                                                ],
+                                                stops: const [0.0, 0.25, 0.55, 0.82, 1.0],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -1000,11 +1073,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 10), // Overlap space
+                            SizedBox(
+                              height: (_orderAvailability?.isBlocked ?? false) ? 46 : 28,
+                            ), // Overlap space calibrated for compact card
                             // Action Buttons
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
+                                horizontal: 22,
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1120,7 +1195,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 30),
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -1153,75 +1228,98 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
               ),
             ),
 
-            // Custom App Bar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top,
-                ),
-                height: kToolbarHeight + MediaQuery.of(context).padding.top,
-                decoration: BoxDecoration(
-                  color: _isScrolled ? Colors.white : Colors.transparent,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: _isScrolled
-                          ? Colors.black.withValues(alpha: 0.05)
-                          : Colors.transparent,
-                      width: 1,
+            // Custom App Bar with Smooth Scroll Transition Animation
+            AnimatedBuilder(
+              animation: _scrollController,
+              builder: (context, _) {
+                double scrollOffset = 0;
+                if (_scrollController.hasClients) {
+                  scrollOffset = _scrollController.offset;
+                }
+
+                // Progressive smooth transition linked to scroll position (from offset 30 to 135)
+                final barRatio = ((scrollOffset - 30) / 105.0).clamp(0.0, 1.0);
+                final smoothBarT = Curves.easeInOut.transform(barRatio);
+                final appBarColor = Colors.white.withValues(alpha: smoothBarT);
+                final borderColor = Colors.black.withValues(alpha: 0.08 * smoothBarT);
+
+                // Smooth title opacity (fades in gracefully from offset 65 to 135)
+                final titleRatio = ((scrollOffset - 65) / 70.0).clamp(0.0, 1.0);
+                final titleOpacity = Curves.easeOut.transform(titleRatio);
+
+                // Button colors smoothly transitioning
+                final btnBgColor = Color.lerp(
+                  Colors.black.withValues(alpha: 0.30),
+                  Colors.black.withValues(alpha: 0.05),
+                  smoothBarT,
+                )!;
+                final btnIconColor = Color.lerp(
+                  Colors.white,
+                  const Color(0xFF1E293B),
+                  smoothBarT,
+                )!;
+
+                return Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top,
                     ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    _buildCircleIconButton(
-                      icon: PhosphorIcons.arrowLeft,
-                      onPressed: () => Navigator.pop(context),
-                      isScrolled: _isScrolled,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 300),
-                        opacity: _isScrolled ? 1.0 : 0.0,
-                        child: VerifiedRestaurantNameRow(
-                          name: _currentRestaurant?.name ?? '',
-                          isVerified: _currentRestaurant?.isVerified ?? false,
-                          badgeSize: MyTogetherVerifiedBadge.detailSize,
-                          style: AppFonts.poppins(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    height: kToolbarHeight + MediaQuery.of(context).padding.top,
+                    decoration: BoxDecoration(
+                      color: appBarColor,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: borderColor,
+                          width: 1,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildCircleIconButton(
-                      icon: PhosphorIcons.shareNetwork,
-                      onPressed: () => AppDialog.showUnavailable(context),
-                      isScrolled: _isScrolled,
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        _buildCircleIconButtonSmooth(
+                          icon: PhosphorIcons.arrowLeft,
+                          onPressed: () => Navigator.pop(context),
+                          backgroundColor: btnBgColor,
+                          iconColor: btnIconColor,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Opacity(
+                            opacity: titleOpacity,
+                            child: VerifiedRestaurantNameRow(
+                              name: _currentRestaurant?.name ?? '',
+                              isVerified: _currentRestaurant?.isVerified ?? false,
+                              badgeSize: MyTogetherVerifiedBadge.detailSize,
+                              style: AppFonts.poppins(
+                                color: Colors.black,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildCircleIconButtonSmooth(
+                          icon: _isFavorite
+                              ? PhosphorIcons.heartFill
+                              : PhosphorIcons.heart,
+                          onPressed: _toggleShopFavorite,
+                          backgroundColor: btnBgColor,
+                          iconColor: _isFavorite ? AppColors.primary : btnIconColor,
+                        ),
+                        const SizedBox(width: 16),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    _buildCircleIconButton(
-                      icon: _isFavorite
-                          ? PhosphorIcons.heartFill
-                          : PhosphorIcons.heart,
-                      onPressed: _toggleShopFavorite,
-                      isScrolled: _isScrolled,
-                      iconColorOverride: _isFavorite ? AppColors.primary : null,
-                    ),
-                    const SizedBox(width: 16),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
 
-            // Floating Info Card
+            // Floating Info Card with Smooth Glide & Fade Transition Animation
             AnimatedBuilder(
               animation: Listenable.merge([
                 _scrollController,
@@ -1233,101 +1331,155 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   scrollOffset = _scrollController.offset;
                 }
 
-                // Calculate dynamic position to keep consistent gap with SliverAppBar bottom
-                double cardTop = 190 + MediaQuery.of(context).padding.top - scrollOffset;
+                // Calculate dynamic position calibrated for 250px banner height
+                double cardTop = 135 + MediaQuery.of(context).padding.top - scrollOffset;
 
-                // Calculate dynamic opacity (fade out as it moves up)
+                // Slowly and smoothly fades out tied directly to scroll position (from offset 15 to 150)
                 double opacity = 1.0;
-                if (scrollOffset > 50) {
-                  opacity = (1.0 - (scrollOffset - 50) / 200).clamp(0.0, 1.0);
+                double smoothCardT = 0.0;
+                if (scrollOffset > 15) {
+                  final cardProgress = ((scrollOffset - 15) / 135.0).clamp(0.0, 1.0);
+                  smoothCardT = Curves.easeInOut.transform(cardProgress);
+                  opacity = 1.0 - smoothCardT;
                 }
-                if (opacity <= 0) return const SizedBox.shrink();
+                if (opacity <= 0.005) return const SizedBox.shrink();
+
+                final cardScale = 1.0 - (0.04 * smoothCardT);
+                final cardSlideY = -6.0 * smoothCardT;
 
                 final showStrip = _orderAvailability?.isBlocked ?? false;
-                const stripBlockHeight = 44.0;
-                final blockTop = showStrip
-                    ? cardTop - stripBlockHeight - 6
-                    : cardTop;
+                // Calibrate position for 205px banner height (shifted down for better banner reveal)
+                final baseTop = (showStrip ? 96.0 : 116.0) + MediaQuery.of(context).padding.top - scrollOffset;
 
                 return Positioned(
-                  top: blockTop,
+                  top: baseTop + cardSlideY,
                   left: 0,
                   right: 0,
                   child: Opacity(
                     opacity: opacity,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (showStrip && _orderAvailability != null)
-                          RestaurantOrderStatusStrip(
-                            message: _orderAvailability!
-                                .statusStripText(context),
-                            reason: _orderAvailability!.reason,
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: BackdropFilter(
-                              filter: ColorFilter.mode(
-                                Colors.white.withValues(alpha: 0.7),
-                                BlendMode.srcOver,
-                              ),
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (_currentRestaurant != null) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            RestaurantOverviewPage(
-                                          restaurant: _currentRestaurant!,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    width: 1,
+                    child: Transform.scale(
+                      scale: cardScale,
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_currentRestaurant != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      RestaurantOverviewPage(
+                                    restaurant: _currentRestaurant!,
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                // Logo Container (MyDay story ring when active)
-                                Builder(
-                                  builder: (context) {
-                                    final hasStories =
-                                        _currentRestaurant?.hasActiveMyDays ==
-                                            true;
-                                    final logo = Padding(
-                                      padding: EdgeInsets.all(hasStories ? 3 : 0),
-                                      child: Container(
-                                        width: hasStories ? 64 : 70,
-                                        height: hasStories ? 64 : 70,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
+                              );
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 6),
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Docked Status Strip (when closed/unavailable)
+                                if (showStrip && _orderAvailability != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF1F2),
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(19),
+                                      ),
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: const Color(0xFFFECDD3).withValues(alpha: 0.7),
+                                          width: 1,
                                         ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          PhosphorIcons.clockCountdown,
+                                          size: 14,
+                                          color: Color(0xFFE11D48),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _orderAvailability!.statusStripText(context),
+                                            style: AppFonts.poppins(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFFE11D48),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                // Main Card Body (generous padding for comfortable height)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Logo Container (MyDay story ring when active)
+                                      Builder(
+                                        builder: (context) {
+                                          final hasStories =
+                                              _currentRestaurant?.hasActiveMyDays ==
+                                                  true;
+                                          final logo = Padding(
+                                            padding: EdgeInsets.all(hasStories ? 3 : 0),
+                                            child: Container(
+                                              width: hasStories ? 58 : 66,
+                                              height: hasStories ? 58 : 66,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(
+                                                      alpha: 0.08,
+                                                    ),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                           child: resolveMediaUrl(
                                                     _currentRestaurant
                                                         ?.logoPath,
@@ -1396,11 +1548,12 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     );
                                   },
                                 ),
-                                const SizedBox(width: 16),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       VerifiedRestaurantNameRow(
                                         name: _currentRestaurant?.name ?? '',
@@ -1410,164 +1563,241 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                         badgeSize:
                                             MyTogetherVerifiedBadge.detailSize,
                                         style: AppFonts.poppins(
-                                          fontSize: 18,
+                                          fontSize: 16.5,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.black,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        children: [
-                                          Text(
-                                            _currentRestaurant?.category ?? '',
-                                            style: AppFonts.poppins(
-                                              fontSize: 13,
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                          if (_currentRestaurant != null &&
-                                              _currentRestaurant!.rating > 0 &&
-                                              _currentRestaurant!.reviewCount >
-                                                  0) ...[
-                                            Text(
-                                              '  •  ',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                            Text(
-                                              '${_currentRestaurant?.rating ?? 0.0}',
-                                              style: AppFonts.poppins(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            const Icon(
-                                              Icons.star_rounded,
-                                              color: Colors.amber,
-                                              size: 16,
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        spacing: 4,
-                                        children: [
-                                          Icon(
-                                            PhosphorIcons.car,
-                                            size: 16,
-                                            color: Colors.grey[700],
-                                          ),
-                                          Text(
-                                            _currentRestaurant?.distance ?? '',
-                                            style: AppFonts.poppins(
-                                              fontSize: 12,
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                          if (_currentRestaurant?.deliveryEnabled !=
-                                              false) ...[
-                                            Text(
-                                              '  •  ',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                            Icon(
-                                              PhosphorIcons.clock,
-                                              size: 16,
-                                              color: Colors.grey[700],
-                                            ),
-                                            Text(
-                                              _currentRestaurant?.deliveryTime ??
-                                                  '',
-                                              style: AppFonts.poppins(
-                                                fontSize: 12,
-                                                color: Colors.grey[700],
-                                              ),
-                                            ),
-                                          ],
-                                          if (_currentRestaurant?.deliveryEnabled !=
-                                                  false &&
-                                              _currentRestaurant
-                                                      ?.freeDeliveryActive ==
-                                                  true) ...[
-                                            Text(
-                                              '  •  ',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                            Text(
-                                              '${context.tr('common.free')} delivery',
-                                              style: AppFonts.poppins(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF10B981),
-                                              ),
-                                            ),
-                                          ] else if (_currentRestaurant?.deliveryEnabled !=
-                                                  false &&
-                                              (_currentRestaurant?.deliveryFee ??
-                                                      '')
-                                                  .isNotEmpty) ...[
-                                            Text(
-                                              '  •  ',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                            Text(
-                                              DeliveryFeeEstimate.isFreeLabel(
-                                                      _currentRestaurant!
-                                                          .deliveryFee)
-                                                  ? context.tr('common.free')
-                                                  : _currentRestaurant!
-                                                      .deliveryFee!,
-                                              style: AppFonts.poppins(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: const Color(0xFF10B981),
-                                              ),
-                                            ),
-                                          ],
-                                          if (!(_orderAvailability?.isBlocked ??
-                                              false)) ...[
-                                            Text(
-                                              '  •  ',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                            Text(
-                                              _currentRestaurant != null
-                                                  ? RestaurantOpenStatus.of(
-                                                      context,
-                                                      _currentRestaurant!,
-                                                    ).text
-                                                  : context.localizedStatus(
-                                                      _currentRestaurant?.status ??
-                                                          '',
+                                      const SizedBox(height: 3),
+                                      Builder(
+                                        builder: (context) {
+                                          Widget dot() => Text(
+                                                '  •  ',
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: 10,
+                                                  height: 1.0,
+                                                ),
+                                              );
+
+                                          // --- Delivery Fee Widget ---
+                                          Widget? deliveryFeeWidget;
+                                          if (_currentRestaurant?.deliveryEnabled != false) {
+                                            if (_currentRestaurant?.freeDeliveryActive == true) {
+                                              deliveryFeeWidget = Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFECFDF5),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  '${context.tr('common.free')} delivery',
+                                                  style: AppFonts.poppins(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: const Color(0xFF059669),
+                                                  ),
+                                                ),
+                                              );
+                                            } else if ((_currentRestaurant?.deliveryFee ?? '').isNotEmpty) {
+                                              deliveryFeeWidget = Text(
+                                                DeliveryFeeEstimate.isFreeLabel(_currentRestaurant!.deliveryFee)
+                                                    ? context.tr('common.free')
+                                                    : _currentRestaurant!.deliveryFee!,
+                                                style: AppFonts.poppins(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: const Color(0xFF059669),
+                                                ),
+                                              );
+                                            }
+                                          }
+
+                                          // --- Distance Widget ---
+                                          Widget? distanceWidget;
+                                          if ((_currentRestaurant?.distance ?? '').isNotEmpty) {
+                                            distanceWidget = Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  PhosphorIcons.car,
+                                                  size: 13,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  _currentRestaurant!.distance,
+                                                  style: AppFonts.poppins(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: const Color(0xFF475569),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }
+
+                                          // --- Delivery Time Widget ---
+                                          Widget? deliveryTimeWidget;
+                                          if (_currentRestaurant?.deliveryEnabled != false &&
+                                              (_currentRestaurant?.deliveryTime ?? '').isNotEmpty) {
+                                            deliveryTimeWidget = Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  PhosphorIcons.clock,
+                                                  size: 13,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  _currentRestaurant!.deliveryTime!,
+                                                  style: AppFonts.poppins(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: const Color(0xFF475569),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }
+
+                                          // --- Open Status Widget ---
+                                          Widget? openStatusWidget;
+                                          if (!(_orderAvailability?.isBlocked ?? false)) {
+                                            final status = _currentRestaurant != null
+                                                ? RestaurantOpenStatus.of(
+                                                    context,
+                                                    _currentRestaurant!,
+                                                  )
+                                                : null;
+                                            final statusText = status?.text ??
+                                                context.localizedStatus(
+                                                  _currentRestaurant?.status ?? '',
+                                                );
+                                            final statusColor =
+                                                status?.color ?? const Color(0xFF10B981);
+                                            if (statusText.isNotEmpty) {
+                                              openStatusWidget = Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 6,
+                                                    height: 6,
+                                                    decoration: BoxDecoration(
+                                                      color: statusColor,
+                                                      shape: BoxShape.circle,
                                                     ),
-                                              style: AppFonts.poppins(
-                                                fontSize: 12,
-                                                color: _currentRestaurant != null
-                                                    ? RestaurantOpenStatus.of(
-                                                        context,
-                                                        _currentRestaurant!,
-                                                      ).color
-                                                    : const Color(0xFF10B981),
-                                                fontWeight: FontWeight.w600,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    statusText,
+                                                    style: AppFonts.poppins(
+                                                      fontSize: 11.5,
+                                                      color: statusColor,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            }
+                                          }
+
+                                          // Line 2: Category · Rating
+                                          final line2Elements = <Widget>[];
+                                          if ((_currentRestaurant?.category ?? '').isNotEmpty) {
+                                            line2Elements.add(
+                                              Text(
+                                                _currentRestaurant!.category,
+                                                style: AppFonts.poppins(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: const Color(0xFF64748B),
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ],
+                                            );
+                                          }
+                                          if (_currentRestaurant != null &&
+                                              _currentRestaurant!.rating > 0) {
+                                            line2Elements.add(
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    _currentRestaurant!.rating.toStringAsFixed(1),
+                                                    style: AppFonts.poppins(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: const Color(0xFF1E293B),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  const Icon(
+                                                    Icons.star_rounded,
+                                                    color: Color(0xFFFFB800),
+                                                    size: 14,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }
+
+                                          // Line 3: Distance, Delivery Time, Delivery Fee, Open Status
+                                          final line3Elements = <Widget>[
+                                            if (distanceWidget != null) distanceWidget,
+                                            if (deliveryTimeWidget != null) deliveryTimeWidget,
+                                            if (deliveryFeeWidget != null) deliveryFeeWidget,
+                                            if (openStatusWidget != null) openStatusWidget,
+                                          ];
+
+                                          List<Widget> join(List<Widget> items) {
+                                            final res = <Widget>[];
+                                            for (int i = 0; i < items.length; i++) {
+                                              res.add(items[i]);
+                                              if (i < items.length - 1) {
+                                                res.add(dot());
+                                              }
+                                            }
+                                            return res;
+                                          }
+
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (line2Elements.isNotEmpty)
+                                                ClipRect(
+                                                  child: SizedBox(
+                                                    width: double.infinity,
+                                                    child: FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: join(line2Elements),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              if (line3Elements.isNotEmpty) ...[
+                                                const SizedBox(height: 5),
+                                                ClipRect(
+                                                  child: SizedBox(
+                                                    width: double.infinity,
+                                                    child: FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: join(line3Elements),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -1575,16 +1805,16 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                               ],
                             ),
                           ),
-                         ),
-                        ),
+                        ],
                       ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              );
-            },
+              ),
             ),
+          );
+        },
+      ),
 
             // Active Order Bar & Cart Summary
             Positioned(
@@ -1754,6 +1984,25 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     );
   }
 
+  Widget _buildCircleIconButtonSmooth({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required Color backgroundColor,
+    required Color iconColor,
+  }) {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        icon: Icon(icon, color: iconColor, size: 20),
+        onPressed: onPressed,
+      ),
+    );
+  }
+
   Widget _buildCircleIconButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -1805,8 +2054,8 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 65,
-                  height: 65,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: AppColors.primaryGradient,
@@ -1819,10 +2068,10 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                       shape: BoxShape.circle,
                       color: Colors.white,
                     ),
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(7),
                     child: imageAsset != null
                         ? Image.asset(imageAsset, fit: BoxFit.contain)
-                        : Icon(icon, color: AppColors.primary, size: 26),
+                        : Icon(icon, color: AppColors.primary, size: 20),
                   ),
                 ),
                 if (shineValue > 0)
@@ -1856,21 +2105,21 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                     angle: badgeRotation,
                     alignment: Alignment.topCenter,
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(2.5),
                       decoration: const BoxDecoration(
                         color: Colors.red,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
+                        minWidth: 16,
+                        minHeight: 16,
                       ),
                       child: Center(
                         child: Text(
                           '$badgeCount',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             height: 1.0,
                           ),
@@ -1882,11 +2131,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             label,
             style: AppFonts.poppins(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: const Color(
                 0xFF1F2937,
@@ -2049,10 +2298,17 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
 
     final groups = _buildCategoryGroups();
 
-    for (final group in groups) {
+    for (int i = 0; i < groups.length; i++) {
+      final group = groups[i];
       if (group.title != null && group.title!.isNotEmpty) {
+        final isFirstAfterLastOrder = i == 0 && _lastOrder.isNotEmpty;
         slivers.add(
-          SliverToBoxAdapter(child: _buildCategoryHeader(group.title!)),
+          SliverToBoxAdapter(
+            child: _buildCategoryHeader(
+              group.title!,
+              topPadding: isFirstAfterLastOrder ? 16.0 : 20.0,
+            ),
+          ),
         );
       }
       slivers.add(
@@ -2163,9 +2419,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     );
   }
 
-  Widget _buildCategoryHeader(String title) {
+  Widget _buildCategoryHeader(String title, {double topPadding = 14.0}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: EdgeInsets.fromLTRB(16, topPadding, 16, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

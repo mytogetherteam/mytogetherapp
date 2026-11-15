@@ -240,11 +240,15 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
 
       if (!mounted) return;
 
+      // Use the resolved place name (condo / POI / neighbourhood) as the
+      // default building name so the LocationDetailsSheet pre-fills it.
+      final placeName = fullPlace.name.trim();
       final draft = UserLocationModel(
         id: 0,
         latitude: fullPlace.lat,
         longitude: fullPlace.lon,
         address: fullPlace.displayName,
+        buildingName: placeName.isNotEmpty ? placeName : null,
         locationType: 'OTHER',
         isPrimary: true,
       );

@@ -28,6 +28,7 @@ class CurrencyRateModel {
 
   String get flagEmoji {
     const flags = {
+      'MMK': '🇲🇲',
       'USD': '🇺🇸',
       'EUR': '🇪🇺',
       'SGD': '🇸🇬',
@@ -73,6 +74,7 @@ class CurrencyRateModel {
 
   String get currencyName {
     const names = {
+      'MMK': 'Myanmar Kyat',
       'USD': 'US Dollar',
       'EUR': 'Euro',
       'SGD': 'Singapore Dollar',

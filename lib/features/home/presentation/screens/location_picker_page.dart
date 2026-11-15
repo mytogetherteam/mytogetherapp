@@ -9,8 +9,6 @@ import 'package:mytogetherapp/core/localization/app_translations.dart';
 import 'package:mytogetherapp/core/theme/app_colors.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-import '../../../../core/config/google_maps_config.dart';
-import '../../../../core/location/location_search_service.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/location/location_enable_dialog.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
@@ -41,19 +39,13 @@ class LocationPickerPage extends StatefulWidget {
 
 class _LocationPickerPageState extends State<LocationPickerPage> {
   final GlobalKey<PinnedMapViewState> _mapKey = GlobalKey();
-  final TextEditingController _searchController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
   late final MapPinGeocodeController _geocode;
 
-  Timer? _searchDebounce;
   LatLng? _selectedPosition;
-  List<PlaceResult> _searchResults = [];
-  bool _isSearching = false;
   bool _isLoadingInitial = true;
   bool _showMap = false;
   bool _isSaving = false;
-  bool _showSearchResults = false;
   bool _didSaveAddress = false;
   bool _leavePromptOpen = false;
   bool _geocodeReady = false;
@@ -83,26 +75,15 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       addressController: TextEditingController(),
     );
     _geocodeReady = true;
-    _searchFocus.addListener(() {
-      if (!_searchFocus.hasFocus && _searchController.text.trim().isEmpty) {
-        setState(() => _showSearchResults = false);
-      }
-    });
-    _searchController.addListener(() {
-      if (mounted) setState(() {});
-    });
     _resolveInitialPosition();
   }
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.dispose();
     if (_geocodeReady) {
       _geocode.addressController.dispose();
       _geocode.dispose();
     }
-    _searchFocus.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -149,76 +130,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       if (mounted) setState(() => _showMap = true);
     });
     await _geocode.prefillFromCache(resolvedLat, resolvedLon);
-    if (_geocode.addressController.text.trim().isEmpty) {
-      await _geocode.lookupInitialPosition(position);
-    }
+    await _geocode.lookupInitialPosition(position);
   }
 
   void _onPinDropped(LatLng target) {
     _selectedPosition = target;
     _geocode.onPinDropped(target);
-  }
-
-  void _onSearchChanged(String query) {
-    _searchDebounce?.cancel();
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      LocationSearchService.instance.resetSession();
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-        _showSearchResults = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _showSearchResults = true;
-    });
-
-    _searchDebounce = Timer(const Duration(milliseconds: 400), () async {
-      final results = await LocationSearchService.instance.searchPlaces(
-        trimmed,
-        lat: _selectedPosition?.latitude,
-        lon: _selectedPosition?.longitude,
-      );
-      if (!mounted) return;
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    });
-  }
-
-  Future<void> _selectSearchResult(PlaceResult place) async {
-    _searchFocus.unfocus();
-    setState(() {
-      _showSearchResults = false;
-      _searchResults = [];
-    });
-
-    PlaceResult resolved = place;
-    if (place.lat == 0 && place.lon == 0) {
-      final details =
-          await LocationSearchService.instance.getPlaceDetails(place);
-      if (details != null) resolved = details;
-    }
-
-    if (resolved.lat == 0 && resolved.lon == 0) return;
-
-    final target = LatLng(resolved.lat, resolved.lon);
-    await _mapKey.currentState?.animateTo(target);
-
-    if (!mounted) return;
-    setState(() => _selectedPosition = target);
-
-    if (resolved.displayName.trim().isNotEmpty) {
-      _geocode.applySearchResult(resolved);
-    } else {
-      await _geocode.reverseGeocodeNow(target);
-    }
-    _searchController.text = resolved.name;
   }
 
   Future<void> _goToMyLocation() async {
@@ -314,12 +231,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
     if (!mounted) return null;
 
+    // Use the geocode-resolved place name (condo / building / POI) as the
+    // default building name so the LocationDetailsSheet pre-fills it.
+    final geoName = _geocode.selectedPlaceResult?.name.trim();
+    final buildingNameHint =
+        (geoName != null && geoName.isNotEmpty) ? geoName : null;
+
     return UserLocationModel(
       id: 0,
       latitude: pos.latitude,
       longitude: pos.longitude,
       locationName: null,
       address: address,
+      buildingName: buildingNameHint,
       locationType: 'OTHER',
       isPrimary: true,
     );
@@ -583,7 +507,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         child: _buildForcedSetupBanner(),
                       ),
                     ),
-                  _buildSearchOverlay(forcedBannerInset: forcedBannerInset),
+                  _buildTopOverlay(forcedBannerInset: forcedBannerInset),
                   if (_isSaving)
                     const Positioned.fill(
                       child: ColoredBox(
@@ -597,179 +521,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 
-  Widget _buildSearchOverlay({double forcedBannerInset = 0}) {
+  Widget _buildTopOverlay({double forcedBannerInset = 0}) {
     final topInset = MediaQuery.of(context).padding.top + forcedBannerInset;
-
-    if (!GoogleMapsConfig.placesSearchEnabled) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: topInset + 8,
-            left: 8,
-            child: _buildBackButton(),
-          ),
-        ],
-      );
-    }
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned(
-          top: topInset + 8,
-          left: 8,
-          right: 16,
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: _onBack,
-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              ),
-              Expanded(
-                child: Material(
-                  elevation: 4,
-                  shadowColor: Colors.black26,
-                  borderRadius: BorderRadius.circular(24),
-                  child: TextField(
-                    controller: _searchController,
-                    focusNode: _searchFocus,
-                    onChanged: _onSearchChanged,
-                    onTap: () {
-                      if (_searchController.text.trim().isNotEmpty) {
-                        setState(() => _showSearchResults = true);
-                      }
-                    },
-                    style: AppFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: context.tr('location.search_hint'),
-                      hintStyle: AppFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey.shade400,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      prefixIcon: Icon(
-                        PhosphorIcons.magnifyingGlass,
-                        size: 20,
-                        color: Colors.grey.shade500,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                _onSearchChanged('');
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (_showSearchResults && _searchController.text.trim().isNotEmpty)
-          Positioned(
-            top: topInset + 64,
-            left: 56,
-            right: 16,
-            child: Material(
-              elevation: 8,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.4,
-                ),
-                child: _buildSearchResultsList(),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSearchResultsList() {
-    if (_isSearching) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CustomLoadingIndicator(size: 24)),
-      );
-    }
-    if (_searchResults.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Text(
-            context.tr('location.no_results'),
-            style: AppFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ),
-      );
-    }
-    return ListView.separated(
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _searchResults.length,
-      separatorBuilder: (_, _) => Divider(
-        height: 1,
-        color: Colors.grey.shade100,
-        indent: 56,
-      ),
-      itemBuilder: (_, index) {
-        final place = _searchResults[index];
-        return ListTile(
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              PhosphorIcons.mapPin,
-              size: 20,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          title: Text(
-            place.name,
-            style: AppFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            place.displayName,
-            style: AppFonts.poppins(
-              fontSize: 12,
-              color: Colors.grey.shade500,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          onTap: () => _selectSearchResult(place),
-        );
-      },
+    return Positioned(
+      top: topInset + 8,
+      left: 12,
+      child: _buildBackButton(),
     );
   }
 }

@@ -31,6 +31,7 @@ class ActiveCallService : Service() {
         const val ACTION_END_CALL = "com.mytogetherorg.mytogether.ACTION_END_CALL"
 
         var isRunning = false
+        var onEndCallFromNotification: (() -> Unit)? = null
         private var callerName = "Ongoing Call"
         private var callBaseTime = 0L
     }
@@ -47,14 +48,22 @@ class ActiveCallService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Handle End-Call action fired from the notification button
         if (intent?.action == ACTION_END_CALL) {
+            onEndCallFromNotification?.invoke()
             stopSelf()
             return START_NOT_STICKY
         }
 
         // Read caller info from the intent
         callerName  = intent?.getStringExtra("callerName") ?: "Ongoing Call"
-        callBaseTime = intent?.getLongExtra("baseTime", 0L)
-            ?.takeIf { it > 0 } ?: SystemClock.elapsedRealtime()
+        val rawBaseTime = intent?.getLongExtra("baseTime", 0L) ?: 0L
+        callBaseTime = when {
+            rawBaseTime <= 0L -> SystemClock.elapsedRealtime()
+            rawBaseTime > 1_000_000_000_000L -> {
+                val delta = (System.currentTimeMillis() - rawBaseTime).coerceAtLeast(0L)
+                SystemClock.elapsedRealtime() - delta
+            }
+            else -> rawBaseTime
+        }
 
         if (!isRunning) {
             isRunning = true

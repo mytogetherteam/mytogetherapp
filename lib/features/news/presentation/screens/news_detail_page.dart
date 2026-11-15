@@ -10,7 +10,6 @@ import '../widgets/news_image_viewer.dart';
 import '../../data/models/news_item.dart';
 import '../../data/models/news_comment.dart';
 import '../../data/repositories/news_repository.dart';
-import '../../../lost_and_found/data/repositories/item_post_repository.dart';
 import 'package:mytogetherapp/core/auth/auth_service.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/core/presentation/widgets/app_dialog.dart';
@@ -108,25 +107,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
           _commentsLoaded = true;
           _syncCommentCount();
         });
-      } else if (widget.item.source == FeedSource.itemPost) {
-        final rows = await ItemPostRepository.instance.fetchComments(id);
-        if (!mounted) return;
-        setState(() {
-          _comments = rows
-              .map(
-                (c) => NewsComment(
-                  id: c.id,
-                  authorName: c.authorName,
-                  authorAvatar: c.authorAvatar,
-                  content: c.content,
-                  timeAgo: c.timeAgo,
-                  isMine: myId != null && c.user?.id == myId,
-                ),
-              )
-              .toList();
-          _commentsLoaded = true;
-          _syncCommentCount();
-        });
       }
     } catch (e) {
       if (kDebugMode) debugPrint('news_detail_page.dart: ignored error: $e');
@@ -165,9 +145,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
     try {
       final id = widget.item.entityId!;
-      final result = widget.item.source == FeedSource.news
-          ? await NewsRepository.instance.toggleLike(id)
-          : await ItemPostRepository.instance.toggleLike(id);
+      final result = await NewsRepository.instance.toggleLike(id);
       if (!mounted) return;
       setState(() {
         _isLiked = result.liked;
@@ -212,28 +190,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       try {
         if (widget.item.source == FeedSource.news) {
           final created = await NewsRepository.instance.addComment(
-            widget.item.entityId!,
-            text,
-          );
-          if (created != null && mounted) {
-            setState(() {
-              _comments.insert(
-                0,
-                NewsComment(
-                  id: created.id,
-                  authorName: created.authorName,
-                  authorAvatar: created.authorAvatar,
-                  content: created.content,
-                  timeAgo: created.timeAgo,
-                  isMine: true,
-                ),
-              );
-              _commentsLoaded = true;
-              _syncCommentCount();
-            });
-          }
-        } else if (widget.item.source == FeedSource.itemPost) {
-          final created = await ItemPostRepository.instance.addComment(
             widget.item.entityId!,
             text,
           );
@@ -330,13 +286,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     // Optimistic update with rollback on failure.
     setState(() => _comments[index] = comment.copyWith(content: newText));
     try {
-      if (widget.item.source == FeedSource.news) {
-        await NewsRepository.instance
-            .updateComment(entityId, commentId, newText);
-      } else {
-        await ItemPostRepository.instance
-            .updateComment(entityId, commentId, newText);
-      }
+      await NewsRepository.instance.updateComment(entityId, commentId, newText);
     } catch (_) {
       if (!mounted) return;
       setState(() => _comments[index] = comment);
@@ -369,11 +319,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       _syncCommentCount();
     });
     try {
-      if (widget.item.source == FeedSource.news) {
-        await NewsRepository.instance.deleteComment(entityId, commentId);
-      } else {
-        await ItemPostRepository.instance.deleteComment(entityId, commentId);
-      }
+      await NewsRepository.instance.deleteComment(entityId, commentId);
     } catch (_) {
       if (!mounted) return;
       setState(() {

@@ -16,6 +16,8 @@ import "package:mytogetherapp/features/wishlist/data/repositories/wishlist_repos
 import "package:mytogetherapp/features/wishlist/presentation/screens/wishlist_page.dart";
 import "../../../../core/presentation/widgets/app_dialog.dart";
 import "package:mytogetherapp/core/auth/guest_auth_guard.dart";
+import "../widgets/place_card.dart";
+import "../../data/repositories/places_repository.dart";
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceDto place;
@@ -44,6 +46,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   late List<String> _allImages;
   int _currentImageIndex = 0;
   Timer? _slideshowTimer;
+
+  List<PlaceDto> _otherPlaces = [];
+  bool _isLoadingOtherPlaces = true;
 
   final WishlistRepository _wishlist = WishlistRepository.instance;
 
@@ -101,6 +106,33 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
     // Slideshow Timer
     _startSlideshow();
+    _loadOtherPlaces();
+  }
+
+  void _loadOtherPlaces() {
+    PlacesRepository.instance
+        .fetchPlaces(
+          page: 1,
+          size: 8,
+          latitude: widget.place.latitude,
+          longitude: widget.place.longitude,
+          random: true,
+        )
+        .then((feed) {
+          if (mounted) {
+            setState(() {
+              _otherPlaces = feed.items
+                  .where((p) => p.id != widget.place.id)
+                  .toList();
+              _isLoadingOtherPlaces = false;
+            });
+          }
+        })
+        .catchError((_) {
+          if (mounted) {
+            setState(() => _isLoadingOtherPlaces = false);
+          }
+        });
   }
 
   void _startSlideshow() {
@@ -881,6 +913,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                                       ),
                                     ),
                                   ],
+
+                                  // Other Places to Explore
+                                  _buildOtherPlacesSection(context),
                                 ],
                               ),
                             ),
@@ -1188,4 +1223,82 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       ),
     );
   }
+
+  Widget _buildOtherPlacesSection(BuildContext context) {
+    if (!_isLoadingOtherPlaces && _otherPlaces.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 32),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Text(
+            context.tr("place.other_places"),
+            style: AppFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_isLoadingOtherPlaces)
+          const SizedBox(
+            height: 250,
+            child: Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else
+          SizedBox(
+            height: 250,
+            child: ListView.builder(
+              padding: const EdgeInsets.only(left: 20.0),
+              physics: const BouncingScrollPhysics(),
+              scrollDirection: Axis.horizontal,
+              itemCount: _otherPlaces.length,
+              itemBuilder: (context, index) {
+                final place = _otherPlaces[index];
+                final image = place.coverImage.isNotEmpty
+                    ? place.coverImage
+                    : (place.galleryUrls.isNotEmpty
+                        ? place.galleryUrls.first
+                        : "");
+                return Padding(
+                  padding: const EdgeInsets.only(right: 14.0),
+                  child: SizedBox(
+                    width: 190,
+                    height: 250,
+                    child: PlaceCard(
+                      name: place.displayTitle,
+                      category: place.locationName,
+                      distance: place.formattedDistance,
+                      imagePath: image,
+                      primaryActivity: place.primaryActivity,
+                      startingPrice: place.startingPrice,
+                      placeId: place.id,
+                      isFavorite: _wishlist.isPrimed
+                          ? _wishlist.isPlaceSaved(place.id)
+                          : place.isFavorite,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlaceDetailPage(place: place),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
 }

@@ -36,6 +36,18 @@ class AppTheme {
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
     ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: const Color(0xFFED3A72),
+      contentTextStyle: const TextStyle(
+        color: Colors.white,
+        fontFamily: 'Poppins',
+        fontWeight: FontWeight.w600,
+      ),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    ),
   );
 
   static final ThemeData darkTheme = ThemeData(
@@ -57,6 +69,18 @@ class AppTheme {
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: const Color(0xFFED3A72),
+      contentTextStyle: const TextStyle(
+        color: Colors.white,
+        fontFamily: 'Poppins',
+        fontWeight: FontWeight.w600,
+      ),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
     ),
   );
 }

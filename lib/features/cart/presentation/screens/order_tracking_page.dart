@@ -26,6 +26,7 @@ import 'order_cancel_page.dart';
 import 'order_complete_page.dart';
 import 'order_status_page.dart';
 import '../../../../core/network/websocket_service.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/presentation/widgets/gradient_text.dart';
 import '../../../../core/utils/price_formatter.dart';
@@ -54,12 +55,14 @@ class OrderTrackingPage extends StatefulWidget {
   final CartStore store;
   final Restaurant? restaurant;
   final int foodTotal;
+  final double? deliveryFee;
 
   const OrderTrackingPage({
     super.key,
     required this.store,
     this.restaurant,
     this.foodTotal = 0,
+    this.deliveryFee,
   });
 
   @override
@@ -417,6 +420,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _dio = Dio();
 
     _checkCachedData();
+    _fetchLalamoveQuotationIfNeeded();
     if (_routePoints.isNotEmpty) {
       _showMap = true;
     }
@@ -456,9 +460,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _checkCachedData() {
     final state = ActiveOrderState.instance;
+    _deliveryFee = widget.deliveryFee ?? state.deliveryFee ?? _deliveryFee;
     if (state.routePoints.isNotEmpty) {
       _routePoints = state.routePoints;
-      _deliveryFee = state.deliveryFee;
     }
     final savedUser = state.userLocation;
     if (savedUser != null &&
@@ -466,6 +470,53 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         savedUser.longitude != 0) {
       _currentLocation = savedUser;
     }
+  }
+
+  Future<void> _fetchLalamoveQuotationIfNeeded() async {
+    final state = ActiveOrderState.instance;
+    if (state.isFreeDelivery || state.isPickupFulfillment) return;
+    if ((_deliveryFee != null && _deliveryFee! > 0) ||
+        (state.deliveryFee != null && state.deliveryFee! > 0)) {
+      return;
+    }
+
+    final rawShopId = state.shopId ?? widget.restaurant?.id.toString();
+    final shopId = int.tryParse(rawShopId ?? '');
+    final lat = state.userLocation?.latitude ?? _currentLocation?.latitude;
+    final lon = state.userLocation?.longitude ?? _currentLocation?.longitude;
+
+    if (shopId == null || lat == null || lon == null || (lat == 0 && lon == 0)) return;
+
+    try {
+      final response = await ApiClient().dio.post(
+        '${ApiClient.apiPrefix}/user/orders/delivery-quotation',
+        data: {
+          'shopId': shopId,
+          'lat': lat,
+          'lon': lon,
+          if (state.userLocationName != null) 'address': state.userLocationName,
+        },
+      );
+      final body = response.data;
+      final data = body is Map && body['data'] is Map
+          ? Map<String, dynamic>.from(body['data'] as Map)
+          : (body is Map ? Map<String, dynamic>.from(body) : null);
+      final fee = (data?['originalFee'] as num?)?.toDouble() ??
+          (data?['fee'] as num?)?.toDouble();
+      if (fee != null && fee > 0 && mounted) {
+        setState(() {
+          _deliveryFee = fee;
+        });
+        state.deliveryFee = fee;
+        state.displayDeliveryFee = fee.toFormattedPrice();
+      }
+      final durationMins = (data?['durationMins'] as num?)?.toInt() ??
+          (data?['duration'] as num?)?.toInt();
+      if (durationMins != null && durationMins > 0) {
+        state.routeDurationMins = durationMins;
+        state.estimatedTime = '$durationMins mins';
+      }
+    } catch (_) {}
   }
 
   @override
@@ -1197,11 +1248,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         final km = distanceM / 1000;
         final mins = (durationS / 60).ceil();
 
-        // Prefer backend delivery fee from WebSocket if available; otherwise estimate
-        final backendFee = ActiveOrderState.instance.deliveryFee;
+        // Prefer backend delivery fee from WebSocket / quotation if available; otherwise estimate
+        final backendFee = ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee ?? _deliveryFee;
         final fee = (backendFee != null && backendFee > 0 && backendFee < 1000)
             ? backendFee
-            : DeliveryFeeEstimate.midFee(km);
+            : (DeliveryFeeEstimate.midFee(km) + 10);
 
         if (mounted) {
           final polyPoints = [start, ...points, dest];
@@ -1245,10 +1296,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         final mins = (km * 2).ceil(); // Rough estimate: 2 mins per km
 
         // Use backend fee or estimate
-        final backendFee = ActiveOrderState.instance.deliveryFee;
+        final backendFee = ActiveOrderState.instance.deliveryFee ?? widget.deliveryFee ?? _deliveryFee;
         final fee = (backendFee != null && backendFee > 0)
             ? backendFee
-            : DeliveryFeeEstimate.midFee(km);
+            : (DeliveryFeeEstimate.midFee(km) + 10);
 
         setState(() {
           _routePoints = fallbackPoints;
@@ -1287,7 +1338,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _idleSolidController.stop();
     _lightProgressController.stop();
     _dotsAnimController.stop();
-    final fee = _deliveryFee ?? 0.0;
+    final fee = _effectiveDeliveryFee;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -1303,7 +1354,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   void _navigateToOrderStatus({bool autoShowPaymentSheet = false}) {
     if (!mounted || OrderStatusPage.isCurrentlyVisible) return;
     _statusPollTimer?.cancel();
-    final fee = _deliveryFee ?? ActiveOrderState.instance.deliveryFee ?? 0.0;
+    final fee = _effectiveDeliveryFee;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -1653,9 +1704,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                 label: context.tr(
                                                   'order_status.food_total',
                                                 ),
-                                                value: ActiveOrderState
-                                                        .instance.displayFoodPrice ??
-                                                    widget.foodTotal.toFormattedPrice(),
+                                                value: _formatWithoutCurrency(
+                                                  ActiveOrderState
+                                                          .instance.displayFoodPrice ??
+                                                      widget.foodTotal.toFormattedPrice(),
+                                                ),
                                                 valueColor: const Color(0xFF334155),
                                               ),
 
@@ -1663,11 +1716,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                 const SizedBox(height: 12),
                                                 _buildInfoRow(
                                                   label: context.tr('order_status.tax'),
-                                                  value: ActiveOrderState
-                                                          .instance.displayTaxAmount ??
-                                                      ActiveOrderState
-                                                          .instance.resolvedTaxAmount
-                                                          .toFormattedPrice(),
+                                                  value: _formatWithoutCurrency(
+                                                    ActiveOrderState
+                                                            .instance.displayTaxAmount ??
+                                                        ActiveOrderState
+                                                            .instance.resolvedTaxAmount
+                                                            .toFormattedPrice(),
+                                                  ),
                                                   valueColor: const Color(0xFF334155),
                                                 ),
                                               ],
@@ -1684,6 +1739,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                       .instance.displayDiscountAmount,
                                                   shopCoupon: ActiveOrderState
                                                       .instance.shopCoupon,
+                                                  showCurrencySymbol: false,
                                                 ),
                                               ],
                                               if (ActiveOrderState
@@ -1691,16 +1747,33 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                                 const SizedBox(height: 12),
                                                 _buildInfoRow(
                                                   label: context.tr('order_status.transaction_discount'),
-                                                  value: '- ${ActiveOrderState.instance.displayTransactionDiscount ?? ActiveOrderState.instance.transactionDiscount.toFormattedPrice()}',
+                                                  value: '- ${_formatWithoutCurrency(ActiveOrderState.instance.displayTransactionDiscount ?? ActiveOrderState.instance.transactionDiscount.toFormattedPrice())}',
                                                   valueColor: const Color(0xFFED3973),
                                                 ),
                                               ],
 
                                               if (!ActiveOrderState
                                                   .instance.isPickupFulfillment) ...[
-                                                const SizedBox(height: 16),
+                                                const SizedBox(height: 12),
                                                 _buildDeliveryFeeRow(),
                                               ],
+
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(vertical: 12),
+                                                child: Divider(
+                                                  height: 1,
+                                                  thickness: 1,
+                                                  color: Color(0xFFE2E8F0),
+                                                ),
+                                              ),
+
+                                              _buildInfoRow(
+                                                label: context.tr('cart.total'),
+                                                value: _calculateTotalAmount.toFormattedPrice(),
+                                                isGradientValue: true,
+                                                isBold: true,
+                                                fontSize: 16,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1810,8 +1883,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           ),
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        AppDialog.showToast(
+          context,
+          context.tr('order_status.could_not_call'),
+          gradient: AppColors.primaryGradient,
+          icon: Icons.phone_missed_rounded,
         );
       }
       return;
@@ -1820,8 +1896,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final number = phone?.trim() ?? '';
     if (number.isEmpty || number == '-') {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('order_status.no_phone_number'))),
+        AppDialog.showToast(
+          context,
+          context.tr('order_status.no_phone_number'),
+          gradient: AppColors.primaryGradient,
+          icon: Icons.phone_disabled_rounded,
         );
       }
       return;
@@ -1831,8 +1910,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('order_status.could_not_call'))),
+        AppDialog.showToast(
+          context,
+          context.tr('order_status.could_not_call'),
+          gradient: AppColors.primaryGradient,
+          icon: Icons.phone_missed_rounded,
         );
       }
     }
@@ -1872,20 +1954,28 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     required String value,
     Color? valueColor,
     bool isGradientValue = false,
+    bool isBold = false,
+    double fontSize = 14,
   }) {
+    final weight = isBold ? FontWeight.w700 : FontWeight.w600;
+    final labelWeight = isBold ? FontWeight.w600 : FontWeight.w400;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: AppFonts.poppins(fontSize: 14, color: Colors.black87),
+          style: AppFonts.poppins(
+            fontSize: fontSize,
+            fontWeight: labelWeight,
+            color: isBold ? const Color(0xFF0F172A) : Colors.black87,
+          ),
         ),
         if (isGradientValue)
           GradientText(
             value,
             style: AppFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: fontSize,
+              fontWeight: weight,
               color: Colors.white,
             ),
           )
@@ -1893,29 +1983,72 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           Text(
             value,
             style: AppFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? Colors.black,
+              fontSize: fontSize,
+              fontWeight: weight,
+              color: valueColor ?? (isBold ? const Color(0xFF0F172A) : Colors.black),
             ),
           ),
       ],
     );
   }
 
+  double get _effectiveDeliveryFee {
+    final state = ActiveOrderState.instance;
+    if (state.isFreeDelivery ||
+        state.isPickupFulfillment ||
+        (state.displayDeliveryFee?.toUpperCase() == 'FREE')) {
+      return 0.0;
+    }
+    final fee = _deliveryFee ?? widget.deliveryFee ?? state.deliveryFee;
+    if (fee != null && fee > 0) return fee;
+
+    final km = state.routeDistanceKm ?? 0.0;
+    if (km > 0.0) {
+      return DeliveryFeeEstimate.midFee(km) + 10;
+    }
+    return 0.0;
+  }
+
   String _getEstimatedDeliveryFeeText() {
     final state = ActiveOrderState.instance;
     if (state.isFreeDelivery ||
         (state.displayDeliveryFee?.toUpperCase() == 'FREE')) {
-      return DeliveryFeeEstimate.rangeLabel(0, freeDelivery: true);
+      return 'FREE';
     }
-    final km = state.routeDistanceKm ?? 0.0;
-    
-    if (km == 0.0) {
-      return state.displayDeliveryFee ?? 
-          (_deliveryFee ?? state.deliveryFee ?? 0.0).toFormattedPrice();
+    final fee = _effectiveDeliveryFee;
+    if (fee <= 0) {
+      if (state.displayDeliveryFee != null &&
+          state.displayDeliveryFee!.isNotEmpty &&
+          !state.displayDeliveryFee!.contains('-')) {
+        return state.displayDeliveryFee!;
+      }
+      return 0.0.toFormattedPrice();
     }
-    
-    return DeliveryFeeEstimate.rangeLabel(km);
+    return fee.toFormattedPrice();
+  }
+
+  double get _calculateTotalAmount {
+    final state = ActiveOrderState.instance;
+    final delivery = _effectiveDeliveryFee;
+
+    double? adjustedTotalAmount = state.totalAmount;
+    if (delivery > 0 && adjustedTotalAmount != null) {
+      final payNowWithoutDelivery =
+          state.resolvedPayNowTotal(fallbackDeliveryFee: 0);
+      if ((adjustedTotalAmount - payNowWithoutDelivery).abs() < 0.01) {
+        adjustedTotalAmount += delivery;
+      }
+    }
+
+    return adjustedTotalAmount ??
+        state.resolvedGrandTotal(fallbackDeliveryFee: delivery);
+  }
+
+  String _formatWithoutCurrency(String? raw) {
+    if (raw == null || raw.isEmpty) return '0.00';
+    final trimmed = raw.trim();
+    if (trimmed.toUpperCase() == 'FREE') return trimmed;
+    return trimmed.replaceAll('฿', '').replaceAll('THB', '').trim();
   }
 
   Widget _buildDeliveryFeeRow() {
@@ -1923,47 +2056,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     final isPickup = state.isPickupFulfillment;
     final feeValue = _getEstimatedDeliveryFeeText();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isPickup ? Icons.storefront : Icons.delivery_dining, 
-                size: 16, 
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                isPickup
-                    ? context.tr('order_status.pickup_fee')
-                    : context.tr('cart.est_delivery_fee'),
-                style: AppFonts.poppins(
-                  fontSize: 14, 
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-          Text(
-            feeValue,
-            style: AppFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
+    return _buildInfoRow(
+      label: isPickup
+          ? context.tr('order_status.pickup_fee')
+          : context.tr('order_status.delivery_fee'),
+      value: _formatWithoutCurrency(feeValue),
+      valueColor: const Color(0xFF334155),
     );
   }
 

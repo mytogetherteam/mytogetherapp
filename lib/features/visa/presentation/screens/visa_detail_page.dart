@@ -66,11 +66,14 @@ class _VisaDetailPageState extends State<VisaDetailPage>
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
     if (_args.visaId != null) {
       try {
-        final visa = await VisaRepository.instance.fetchOne(_args.visaId!);
+        final visa = await VisaRepository.instance.fetchOne(
+          _args.visaId!,
+          forceRefresh: forceRefresh,
+        );
         if (visa != null && mounted) {
           _args = VisaDetailArgs(
             visaId: visa.id,
@@ -94,20 +97,29 @@ class _VisaDetailPageState extends State<VisaDetailPage>
   }
 
   Future<void> _handleRefresh() async {
-    await _loadData();
+    await _loadData(forceRefresh: true);
   }
 
   Future<void> _launchUrl(String urlString) async {
     AppHaptics.buttonTap();
     final Uri url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        AppDialog.showToast(
-          context,
-          context.trArgs('visa.could_not_launch', {'url': urlString}),
-          isError: true,
-        );
+    bool launched = false;
+    try {
+      launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+      if (!launched) {
+        launched = await launchUrl(url, mode: LaunchMode.inAppWebView);
       }
+    } catch (_) {
+      try {
+        launched = await launchUrl(url, mode: LaunchMode.inAppWebView);
+      } catch (_) {}
+    }
+    if (!launched && mounted) {
+      AppDialog.showToast(
+        context,
+        context.trArgs('visa.could_not_launch', {'url': urlString}),
+        isError: true,
+      );
     }
   }
 
@@ -187,7 +199,10 @@ class _VisaDetailPageState extends State<VisaDetailPage>
           children: [
             if (hasImage)
               CachedNetworkImage(
+                cacheKey: _args.imageUrl!,
                 imageUrl: _args.imageUrl!,
+                maxWidthDiskCache: 900,
+                memCacheWidth: 900,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: const Color(0xFF1E293B),

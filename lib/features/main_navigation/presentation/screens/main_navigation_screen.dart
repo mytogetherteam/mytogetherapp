@@ -75,6 +75,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Wire up shop-to-user incoming call handler.
     // When a shop calls this user AND user taps notification/accepts, navigate to CallScreen.
     CallSession().onCallAcceptedFromOS = (callId, shopName) {
+      if (CallScreen.isVisibleNotifier.value) return;
       final nav = App.navigatorKey.currentState;
       if (nav == null) return;
       nav.push(
@@ -87,10 +88,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       );
     };
 
-    // Ensure any soft keyboard from auth/onboarding is closed, then request permissions.
+    // Restore any active/accepted CallKit call if the app was cold-started from CallKit
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusManager.instance.primaryFocus?.unfocus();
       _checkAndRequestPermissions();
+      CallSession().checkAndRestoreActiveCall();
     });
   }
 

@@ -511,6 +511,12 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
       case 2:
         return context.tr('active_order.preparing');
       case 3:
+        if (order.isRiderNear ||
+            (order.riderRemainingMins != null &&
+                order.riderRemainingMins! <= 3)) {
+          final mins = order.riderRemainingMins ?? 3;
+          return '🛵 ပို့ဆောင်သူ အနီးသို့ ရောက်ရှိနေပါပြီ (<$mins mins)';
+        }
         final eta = order.estimatedTime;
         return eta != null && eta.isNotEmpty
             ? context.trArgs('active_order.est_arrival', {

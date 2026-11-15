@@ -812,7 +812,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     _horizontalController = PageController();
     _liked = widget.post.likedByMe;
     _myReaction = widget.post.myReaction ??
-        (widget.post.likedByMe ? 'like' : null);
+        (widget.post.likedByMe ? 'love' : null);
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
     _saved = widget.post.savedByMe;
@@ -852,7 +852,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     if (oldWidget.post.id != widget.post.id) {
       _liked = widget.post.likedByMe;
       _myReaction = widget.post.myReaction ??
-          (widget.post.likedByMe ? 'like' : null);
+          (widget.post.likedByMe ? 'love' : null);
       _likeCount = widget.post.likeCount;
       _commentCount = widget.post.commentCount;
       _saved = widget.post.savedByMe;
@@ -944,7 +944,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
       final String requestKey;
       if (requested == null) {
         removing = current != null;
-        requestKey = current ?? 'like';
+        requestKey = current ?? 'love';
       } else if (requested == current) {
         removing = true;
         requestKey = requested;
@@ -1953,6 +1953,12 @@ class _LikeRailButtonState extends State<_LikeRailButton>
   @override
   Widget build(BuildContext context) {
     final color = widget.liked ? const Color(0xFFFF2D55) : Colors.white;
+    final reaction = widget.reaction;
+    final isCustomImage =
+        reaction?.imageUrl != null && reaction!.imageUrl!.isNotEmpty;
+    final isHeartLike = reaction == null ||
+        ((reaction.key == 'love' || reaction.key == 'like') && !isCustomImage);
+
     return GestureDetector(
       onTap: widget.onTap,
       onLongPress: widget.onLongPress,
@@ -1961,7 +1967,7 @@ class _LikeRailButtonState extends State<_LikeRailButton>
         children: [
           ScaleTransition(
             scale: _scale,
-            child: widget.reaction == null
+            child: isHeartLike
                 ? Icon(
                     PhosphorIcons.heartFill,
                     color: color,
@@ -1974,7 +1980,7 @@ class _LikeRailButtonState extends State<_LikeRailButton>
                       ),
                     ],
                   )
-                : _ReactionFace(reaction: widget.reaction!, size: 34),
+                : _ReactionFace(reaction: reaction, size: 34),
           ),
           const SizedBox(height: 4),
           Text(

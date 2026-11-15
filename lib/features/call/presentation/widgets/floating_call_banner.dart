@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:mytogetherapp/core/theme/app_fonts.dart';
 import 'package:mytogetherapp/features/call/data/call_session.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
@@ -48,11 +48,7 @@ class _FloatingCallBannerState extends State<FloatingCallBanner> with SingleTick
               return const SizedBox.shrink();
             }
 
-            return Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: GestureDetector(
+            return GestureDetector(
                 onTap: () {
                   final nav = App.navigatorKey.currentState;
                   if (nav != null) {
@@ -97,6 +93,11 @@ class _FloatingCallBannerState extends State<FloatingCallBanner> with SingleTick
                                   Text(
                                     'Ringing...',
                                     style: AppFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
+                                  )
+                                else if (state == CallState.reconnecting)
+                                  Text(
+                                    'Reconnecting...',
+                                    style: AppFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
                                   ),
                               ],
                             ),
@@ -107,7 +108,6 @@ class _FloatingCallBannerState extends State<FloatingCallBanner> with SingleTick
                     ),
                   ),
                 ),
-              ),
             );
           },
         );
@@ -129,7 +129,8 @@ class _TimerTextState extends State<_TimerText> {
   @override
   void initState() {
     super.initState();
-    _startedAt = DateTime.now();
+    _startedAt = CallSession().connectedAt ?? DateTime.now();
+    _elapsed = DateTime.now().difference(_startedAt);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _elapsed = DateTime.now().difference(_startedAt));
     });

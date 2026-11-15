@@ -9,7 +9,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../widgets/category_card.dart';
 import 'package:mytogetherapp/features/home/presentation/widgets/todays_overview_section.dart';
 import '../widgets/restaurants_nearby_section.dart';
-import '../widgets/lost_items_nearby_section.dart';
 import '../widgets/top_places_nearby_section.dart';
 import '../../../../core/utils/navigation_controller.dart';
 import '../../data/models/banner_image_dto.dart';
@@ -20,7 +19,7 @@ import 'package:mytogetherapp/core/network/api_client.dart';
 import 'package:mytogetherapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mytogetherapp/features/announcements/data/repositories/announcement_repository.dart';
 import 'package:mytogetherapp/features/food/presentation/screens/food_search_page.dart';
-import 'package:mytogetherapp/features/lost_and_found/presentation/screens/lost_and_found_page.dart';
+import 'package:mytogetherapp/features/visa/presentation/screens/other_services_page.dart';
 import 'package:mytogetherapp/core/auth/guest_auth_guard.dart';
 import 'package:mytogetherapp/features/auth/presentation/screens/auth_entry_page.dart';
 import 'package:mytogetherapp/features/currency_exchange/presentation/screens/currency_exchange_page.dart';
@@ -64,7 +63,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DateTime? _lastResumeRefreshAt;
   Timer? _titleTimer;
   final ValueNotifier<bool> _showThemeNameInAppBar = ValueNotifier<bool>(false);
-  int _jobVisitCount = 0;
   bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
 
   @override
@@ -74,7 +72,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _scrollController = ScrollController()..addListener(_onScroll);
     _bannerController = PageController(initialPage: 10000);
     _promoController = PageController(initialPage: 10000);
-    _loadJobVisitCount();
 
     // Dismiss any leftover keyboard from auth/onboarding
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -157,19 +154,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     setState(() => _refreshKey++);
   }
 
-  Future<void> _loadJobVisitCount() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (mounted) {
-        setState(() {
-          _jobVisitCount = prefs.getInt('job_tab_visit_count') ?? 0;
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) debugPrint('home_page.dart: ignored error: $e');
-    }
-  }
-
   void _onScrollToTopRequested() {
     if (NavigationController.instance.tabScrollToTopRequest.value != 0) return;
     if (!mounted) return;
@@ -201,9 +185,44 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
       final bgThemeData = await RestaurantRepository.instance.getBackgroundTheme();
 
+      // Connect with API to check if Friday Free Delivery option is ON
+      bool isFridayFreeDeliveryActive = false;
+      try {
+        final response = await ApiClient().dio.get(
+          '${ApiClient.apiPrefix}/free-delivery/status',
+        );
+        final body = response.data;
+        final data = body is Map && body['data'] is Map ? body['data'] : body;
+        isFridayFreeDeliveryActive = data?['isActive'] == true || data?['isEnabled'] == true;
+      } catch (_) {}
+
+      final List<BannerImageDto> activeTopBanners = List.from(topBanners);
+      if (isFridayFreeDeliveryActive) {
+        // Show attached Friday Free Delivery banner (best quality WebP)
+        activeTopBanners.insert(
+          0,
+          BannerImageDto(
+            id: -777,
+            nameEn: 'Friday Free Delivery',
+            nameMm: 'သောကြာနေ့ ပို့ဆောင်ခ အခမဲ့',
+            nameTh: 'ส่งฟรีวันศุกร์',
+            descriptionEn:
+                'Enjoy free delivery on your favorite food and orders today! Platform-wide free delivery campaign.',
+            descriptionMm:
+                'ယနေ့အတွက် သင်နှစ်သက်ရာ အစားအသောက်များကို ပို့ဆောင်ခ အခမဲ့ဖြင့် မှာယူလိုက်ပါ။',
+            descriptionTh:
+                'เพลิดเพลินกับบริการจัดส่งฟรีสำหรับอาหารและคำสั่งซื้อที่คุณชื่นชอบวันนี้!',
+            imageUrl: 'assets/images/friday_free_delivery.webp',
+            position: 'Promotions',
+            status: 'ACTIVE',
+            displayOrder: -999,
+          ),
+        );
+      }
+
       if (mounted) {
         setState(() {
-          _topBanners = topBanners;
+          _topBanners = activeTopBanners;
           _bottomBanners = bottomBanners;
           if (bgThemeData != null) {
             _bgImageUrl = bgThemeData['url'];
@@ -346,19 +365,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: CachedNetworkImage(memCacheWidth: 1080, 
-                      imageUrl: _getImageUrl(banner.image),
-                      width: double.infinity,
-                      fit: BoxFit.contain,
-                      placeholder: (context, url) =>
-                          const ImageSkeletonLoader(showLogo: true),
-                      errorWidget: (context, url, error) => Container(
-                        height: 200,
-                        color: AppColors.primary,
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.broken_image, color: Colors.white),
-                      ),
-                    ),
+                    child: banner.image.startsWith('assets/')
+                        ? Image.asset(
+                            banner.image,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                          )
+                        : CachedNetworkImage(memCacheWidth: 1080, 
+                            imageUrl: _getImageUrl(banner.image),
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) =>
+                                const ImageSkeletonLoader(showLogo: true),
+                            errorWidget: (context, url, error) => Container(
+                              height: 200,
+                              color: AppColors.primary,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.broken_image, color: Colors.white),
+                            ),
+                          ),
                   ),
                   Positioned(
                     bottom: 0,
@@ -518,12 +543,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   );
                                 }
                                 if (_topBanners.isEmpty) {
-                                  return Container(
-                                    color: Colors.grey.shade100,
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      color: Colors.grey,
+                                  return Image.asset(
+                                    'assets/images/food_game_banner_bg.png',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: Colors.grey.shade100,
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   );
                                 }
@@ -629,33 +659,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         .goToFoodTab(),
                                   ),
                                   CategoryCard(
-                                    title: context.tr('home.category_lost_found'),
+                                    title: context.tr('home.category_other_services'),
                                     assetPath:
-                                        'assets/images/services/lost_found_3d.png',
-                                    onTap: () {
-                                      if (GuestAuthGuard.isGuest) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AuthEntryPage(),
-                                          ),
-                                        );
-                                        return;
-                                      }
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const LostAndFoundPage(),
-                                        ),
-                                      );
-                                    },
+                                        'assets/images/services/thai_law_3d.png',
+                                    badgeText: 'NEW',
+                                    isAnimatedBadge: true,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const OtherServicesPage(),
+                                      ),
+                                    ),
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_currency'),
                                     assetPath:
                                         'assets/images/services/exchange_3d.png',
+                                    badgeText: 'UPDATED',
+                                    isAnimatedBadge: true,
                                     onTap: () {
                                       if (GuestAuthGuard.isGuest) {
                                         Navigator.push(
@@ -680,6 +702,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_visa'),
                                     assetPath:
                                         'assets/images/services/visa_3d.png',
+                                    badgeText: 'UPDATED',
+                                    isAnimatedBadge: true,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -703,24 +727,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_jobs'),
                                     assetPath:
                                         'assets/images/services/jobs_3d.png',
-                                    badgeText: _jobVisitCount < 3 ? 'NEW' : null,
-                                    isAnimatedBadge: true,
-                                    onTap: () {
-                                      if (_jobVisitCount < 3) {
-                                        _jobVisitCount++;
-                                        SharedPreferences.getInstance().then((prefs) {
-                                          prefs.setInt('job_tab_visit_count', _jobVisitCount);
-                                        });
-                                        setState(() {});
-                                      }
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const JobsListPage(),
-                                        ),
-                                      );
-                                    },
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const JobsListPage(),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -858,10 +871,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             // ),
                             TodaysOverviewSection(
                               key: ValueKey('overview_$_refreshKey'),
-                            ),
-                            const SizedBox(height: 24),
-                            LostItemsNearbySection(
-                              key: ValueKey('lost_$_refreshKey'),
                             ),
                             // News is not offered for Thai users (the News tab is
                             // hidden too), so skip the section and its API call.

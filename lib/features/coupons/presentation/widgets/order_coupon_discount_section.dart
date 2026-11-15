@@ -12,6 +12,7 @@ class OrderCouponDiscountSection extends StatelessWidget {
   final double discountAmount;
   final String? displayDiscountAmount;
   final OrderShopCouponInfo? shopCoupon;
+  final bool showCurrencySymbol;
 
   const OrderCouponDiscountSection({
     super.key,
@@ -19,6 +20,7 @@ class OrderCouponDiscountSection extends StatelessWidget {
     this.discountAmount = 0,
     this.displayDiscountAmount,
     this.shopCoupon,
+    this.showCurrencySymbol = true,
   });
 
   bool get _visible =>
@@ -30,7 +32,13 @@ class OrderCouponDiscountSection extends StatelessWidget {
     if (discountAmount > 0) {
       final raw = displayDiscountAmount?.trim();
       if (raw != null && raw.isNotEmpty) {
+        if (!showCurrencySymbol) {
+          return '- ${raw.replaceAll('฿', '').replaceAll('THB', '').trim()}';
+        }
         return '- ${raw.toFormattedPrice()}';
+      }
+      if (!showCurrencySymbol) {
+        return '- ${discountAmount.toFormattedPrice(currency: '').trim()}';
       }
       return '- ${discountAmount.toFormattedPrice()}';
     }

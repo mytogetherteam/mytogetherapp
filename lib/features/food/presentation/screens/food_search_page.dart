@@ -25,6 +25,8 @@ import 'package:mytogetherapp/features/home/presentation/widgets/ordered_before_
 import 'package:mytogetherapp/features/home/presentation/widgets/order_unavailability_ui.dart';
 import 'package:mytogetherapp/features/search/data/models/search_shop_dto.dart';
 import 'package:mytogetherapp/features/search/data/models/search_filters.dart';
+import 'package:mytogetherapp/features/search/data/search_repository.dart';
+import 'package:mytogetherapp/features/search/data/models/ai_search_parsed_result.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,6 +90,7 @@ class _FoodSearchPageState extends State<FoodSearchPage>
   String? _errorMessage;
   SearchFilters _filters = SearchFilters.empty;
   String? _selectedCategoryName;
+  String? _aiIntentLabel;
 
   /// Selectable minimum-rating thresholds for the Rating filter.
   static const List<double> _ratingOptions = [4.5, 4.0, 3.5, 3.0];
@@ -367,22 +370,67 @@ class _FoodSearchPageState extends State<FoodSearchPage>
     });
 
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
-      _runSearch(value, persistRecent: false, typingPreview: true);
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      final parsed = SearchRepository.extractClientHeuristics(value);
+      if (parsed.hasAnyFilter) {
+        setState(() {
+          _aiIntentLabel = parsed.intentLabel;
+          _filters = _filters.copyWith(
+            isSpicy: parsed.isSpicy ?? _filters.isSpicy,
+            isVegetarian: parsed.isVegetarian ?? _filters.isVegetarian,
+            isHalal: parsed.isHalal ?? _filters.isHalal,
+            topRated: parsed.topRated ?? _filters.topRated,
+            mealTypes: parsed.mealType != null && parsed.mealType!.isNotEmpty
+                ? [parsed.mealType!]
+                : _filters.mealTypes,
+          );
+        });
+        _runSearch(parsed.search, persistRecent: false, typingPreview: true);
+      } else {
+        _runSearch(value, persistRecent: false, typingPreview: true);
+      }
     });
   }
 
-  void _onSearchSubmitted(String value) {
-    if (value.trim().isEmpty) return;
+  void _onSearchSubmitted(String value) async {
+    final query = value.trim();
+    if (query.isEmpty) return;
     _debounceTimer?.cancel();
-    setState(() => _currentState = SearchFlowState.searched);
     _searchFocus.unfocus();
-    _runSearch(value, persistRecent: true);
+    setState(() => _currentState = SearchFlowState.searched);
+
+    try {
+      final aiParsed =
+          await SearchRepository.instance.parseNaturalLanguageQuery(query);
+      if (mounted && aiParsed.hasAnyFilter) {
+        setState(() {
+          _aiIntentLabel = aiParsed.intentLabel ?? (aiParsed.hasAnyFilter ? 'AI Filtered' : null);
+          _filters = _filters.copyWith(
+            isSpicy: aiParsed.isSpicy ?? _filters.isSpicy,
+            isVegetarian: aiParsed.isVegetarian ?? _filters.isVegetarian,
+            isHalal: aiParsed.isHalal ?? _filters.isHalal,
+            topRated: aiParsed.topRated ?? _filters.topRated,
+            mealTypes: aiParsed.mealType != null && aiParsed.mealType!.isNotEmpty
+                ? [aiParsed.mealType!]
+                : _filters.mealTypes,
+          );
+        });
+        // Run search with the core dish name (or empty string if only category/criteria filters)
+        _runSearch(aiParsed.search, persistRecent: true);
+        return;
+      }
+    } catch (_) {
+      // Fallback silently if AI fails
+    }
+
+    _aiIntentLabel = null;
+    _runSearch(query, persistRecent: true);
   }
 
   void _clearSearch() {
     _debounceTimer?.cancel();
     _searchController.clear();
+    _aiIntentLabel = null;
     if (_filters.hasAny) {
       setState(() {
         _currentState = SearchFlowState.searched;
@@ -955,6 +1003,8 @@ class _FoodSearchPageState extends State<FoodSearchPage>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         children: [
+          if (_aiIntentLabel != null && _aiIntentLabel!.isNotEmpty)
+            _buildAiActiveChip(),
           _buildDropdownChip(
             label: categoryLabel,
             active: categoryActive,
@@ -993,6 +1043,47 @@ class _FoodSearchPageState extends State<FoodSearchPage>
             onTap: _openDietarySheet,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAiActiveChip() {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _aiIntentLabel = null;
+            _filters = SearchFilters.empty;
+          });
+          _runSearch(_searchController.text.trim(), persistRecent: false);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3E8FF),
+            border: Border.all(color: const Color(0xFFDDD6FE)),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF7C3AED)),
+              const SizedBox(width: 5),
+              Text(
+                _aiIntentLabel!,
+                style: AppFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6D28D9),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.close, size: 14, color: Color(0xFF6D28D9)),
+            ],
+          ),
+        ),
       ),
     );
   }

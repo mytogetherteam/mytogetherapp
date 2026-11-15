@@ -56,7 +56,9 @@ class PlaceCard extends StatelessWidget {
             Positioned.fill(
               child: Hero(
                 tag: 'top_places_$name',
-                child: CachedNetworkImage(fadeInDuration: Duration.zero, fadeOutDuration: Duration.zero,
+                child: CachedNetworkImage(
+                  fadeInDuration: Duration.zero,
+                  fadeOutDuration: Duration.zero,
                   imageUrl: imagePath,
                   fit: BoxFit.cover,
                   placeholder: (context, url) =>
@@ -65,7 +67,7 @@ class PlaceCard extends StatelessWidget {
                     width: 240,
                     height: 320,
                     color: Colors.grey[200],
-                    child: Icon(PhosphorIcons.image, color: Colors.grey),
+                    child: const Icon(PhosphorIcons.image, color: Colors.grey),
                   ),
                 ),
               ),
@@ -74,12 +76,12 @@ class PlaceCard extends StatelessWidget {
             // Activity Badge
             if (primaryActivity != null && primaryActivity!.isNotEmpty)
               Positioned(
-                top: 16,
-                left: 16,
+                top: 14,
+                left: 14,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -89,7 +91,7 @@ class PlaceCard extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withValues(alpha: 0.22),
                           width: 0.8,
                         ),
                       ),
@@ -118,8 +120,8 @@ class PlaceCard extends StatelessWidget {
 
             // Favorite Button
             Positioned(
-              top: 16,
-              right: 16,
+              top: 14,
+              right: 14,
               child: _buildFavoriteButton(context),
             ),
 
@@ -129,21 +131,28 @@ class PlaceCard extends StatelessWidget {
               left: 10,
               right: 10,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(18),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
-                      vertical: 8,
+                      vertical: 9,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(24),
+                      color: Colors.black.withValues(alpha: 0.42),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: Colors.white.withValues(alpha: 0.18),
                         width: 1,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,9 +161,17 @@ class PlaceCard extends StatelessWidget {
                         Text(
                           name,
                           style: AppFonts.poppins(
-                            fontSize: 14,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
+                            height: 1.25,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black45,
+                                offset: Offset(0, 1),
+                                blurRadius: 3,
+                              ),
+                            ],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -162,65 +179,113 @@ class PlaceCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Flexible(
+                            const Icon(
+                              PhosphorIcons.mapPinFill,
+                              size: 12,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
                               child: Text(
-                                category,
+                                _cleanLocation(category),
                                 style: AppFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: Colors.white.withValues(alpha: 0.95),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (distance.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0,
-                                ),
-                                child: Text(
-                                  '•',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                PhosphorIcons.car,
-                                size: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                distance,
-                                style: AppFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
-                        if (startingPrice != null && startingPrice!.isNotEmpty) ...[
-                          const SizedBox(height: 3),
+                        if (distance.isNotEmpty ||
+                            (startingPrice != null &&
+                                startingPrice!.isNotEmpty)) ...[
+                          const SizedBox(height: 5),
                           Row(
                             children: [
-                              const Icon(
-                                PhosphorIcons.tag,
-                                size: 11,
-                                color: Color(0xFFFFE082),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                startingPrice!,
-                                style: AppFonts.poppins(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFFFE082),
+                              if (distance.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      width: 0.6,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        PhosphorIcons.carFill,
+                                        size: 10,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        distance,
+                                        style: AppFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              if (distance.isNotEmpty &&
+                                  startingPrice != null &&
+                                  startingPrice!.isNotEmpty)
+                                const SizedBox(width: 6),
+                              if (startingPrice != null &&
+                                  startingPrice!.isNotEmpty)
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF3C7)
+                                          .withValues(alpha: 0.22),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: const Color(0xFFF59E0B)
+                                            .withValues(alpha: 0.4),
+                                        width: 0.7,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          PhosphorIcons.tagFill,
+                                          size: 10,
+                                          color: Color(0xFFFFE082),
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Flexible(
+                                          child: Text(
+                                            startingPrice!,
+                                            style: AppFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFFFFE082),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -296,6 +361,55 @@ class PlaceCard extends StatelessWidget {
       ),
     );
   }
+
+  static String _cleanLocation(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+
+    final parts = trimmed
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    if (parts.length <= 1) {
+      return trimmed;
+    }
+
+    // Strip postal codes (5 digits) from each part
+    final withoutZip = parts
+        .map((p) => p.replaceAll(RegExp(r'\s*\b\d{5}\b'), '').trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    // Filter out parts that are mostly numbers (house/soi numbers like '734, 736', '88', '13/3', '222', etc.)
+    final meaningful = withoutZip.where((p) {
+      final lettersOnly = p.replaceAll(RegExp(r'[\d\s\-\/#,.]'), '');
+      return lettersOnly.length >= 2;
+    }).toList();
+
+    if (meaningful.isEmpty) {
+      return withoutZip.isNotEmpty ? withoutZip.last : trimmed;
+    }
+
+    // In Thai addresses: [Road/Soi, Subdistrict, District, Province/City]
+    if (meaningful.length >= 2) {
+      final city = meaningful.last;
+      final area = meaningful[meaningful.length - 2];
+      final isRoad =
+          RegExp(r'\b(Rd|Road|Soi|Thanon)\b', caseSensitive: false).hasMatch(area);
+      if (!isRoad) {
+        return '$area, $city';
+      } else if (meaningful.length >= 3) {
+        final deeperArea = meaningful[meaningful.length - 3];
+        return '$deeperArea, $city';
+      }
+      return '$area, $city';
+    }
+
+    return meaningful.first;
+  }
+
   static String _activityIcon(String key) {
     switch (key.toUpperCase()) {
       case "BADMINTON": return "🏸";
@@ -314,6 +428,11 @@ class PlaceCard extends StatelessWidget {
       case "KARAOKE": return "🎤";
       case "BOWLING": return "🎳";
       case "CINEMA": return "🎬";
+      case "SIGHTSEEING": return "🗺️";
+      case "CAFE": return "☕";
+      case "RESTAURANT": return "🍽️";
+      case "BEACH": return "🏖️";
+      case "TEMPLE": return "🛕";
       default: return "📍";
     }
   }

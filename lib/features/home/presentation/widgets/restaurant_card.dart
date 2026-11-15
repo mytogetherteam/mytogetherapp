@@ -211,7 +211,7 @@ class RestaurantCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(height: compact ? 8 : 12),
+                SizedBox(height: compact ? 6 : 8),
                 VerifiedRestaurantNameRow(
                   name: name,
                   isVerified: isVerified,
@@ -224,7 +224,7 @@ class RestaurantCard extends StatelessWidget {
                   ),
                 ),
                 if (orderedBefore) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   const OrderedBeforeLabel(),
                 ],
 
@@ -234,7 +234,7 @@ class RestaurantCard extends StatelessWidget {
                     reason: availability.reason,
                     maxLines: 1,
                   ),
-                SizedBox(height: showStatusLine ? 2 : 4),
+                SizedBox(height: showStatusLine ? 2 : 3),
                 // Metadata Row
                 Transform.translate(
                   offset: const Offset(-1.5, 0),
