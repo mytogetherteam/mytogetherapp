@@ -24,7 +24,6 @@ import 'package:mytogetherapp/features/chat/data/services/chat_unread_controller
 import 'package:mytogetherapp/features/chat/data/services/chat_voice_recorder.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/audio_message_bubble.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/chat_window_hint.dart';
-import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/chat/presentation/widgets/voice_record_button.dart';
 import 'package:mytogetherapp/features/chat/presentation/chat_ui_tokens.dart';
 import 'package:mytogetherapp/features/reviews/presentation/widgets/image_upload_bottom_sheet.dart';
@@ -120,22 +119,16 @@ class _ChatPageState extends State<ChatPage>
   @override
   void didPush() {
     ChatPage.activeOrderId = widget.orderId;
-    // Entered ChatPage -> Hide chat head
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
   }
 
   @override
   void didPopNext() {
     ChatPage.activeOrderId = widget.orderId;
-    // Returned to ChatPage -> Hide chat head
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
   }
 
   @override
   void didPushNext() {
     ChatPage.activeOrderId = null;
-    // Opened another page from ChatPage -> Show chat head
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
 
   @override
@@ -143,8 +136,6 @@ class _ChatPageState extends State<ChatPage>
     if (ChatPage.activeOrderId == widget.orderId) {
       ChatPage.activeOrderId = null;
     }
-    // Exited ChatPage -> Show chat head
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
 
   @override

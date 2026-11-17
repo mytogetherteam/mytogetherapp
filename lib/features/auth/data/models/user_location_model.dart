@@ -29,6 +29,14 @@ class UserLocationModel {
     this.isPrimary = false,
   });
 
+  static bool isPlaceholder(String? text) {
+    if (text == null) return true;
+    final lower = text.trim().toLowerCase();
+    return lower.isEmpty ||
+        lower == 'app location' ||
+        lower == 'app_location';
+  }
+
   factory UserLocationModel.fromJson(Map<String, dynamic> json) {
     // Backend (myshop_demo_api / UserLocation) returns: id, userId, label,
     // address, latitude, longitude, isCurrent, isActive, createdAt, updatedAt.
@@ -37,9 +45,12 @@ class UserLocationModel {
     final rawAddress =
         ((json['addressEn'] as String?) ?? (json['address'] as String?))?.trim();
 
-    final resolvedAddress = (rawAddress != null && rawAddress.isNotEmpty)
-        ? rawAddress
-        : (rawLabel != null && rawLabel.isNotEmpty ? rawLabel : null);
+    final cleanLabel = isPlaceholder(rawLabel) ? null : rawLabel;
+    final cleanAddress = isPlaceholder(rawAddress) ? null : rawAddress;
+
+    final resolvedAddress = (cleanAddress != null && cleanAddress.isNotEmpty)
+        ? cleanAddress
+        : (cleanLabel != null && cleanLabel.isNotEmpty ? cleanLabel : null);
 
     return UserLocationModel(
       id: json['id'] as int? ?? 0,
@@ -63,7 +74,9 @@ class UserLocationModel {
   String? get streetAddress {
     for (final candidate in [address, addressTh, addressMm]) {
       final trimmed = candidate?.trim();
-      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+      if (trimmed != null && trimmed.isNotEmpty && !isPlaceholder(trimmed)) {
+        return trimmed;
+      }
     }
     return null;
   }
@@ -76,7 +89,11 @@ class UserLocationModel {
     if (buildingName != null && buildingName!.trim().isNotEmpty) {
       return buildingName!.trim();
     }
-    return streetAddress ?? fallback;
+    final addr = streetAddress;
+    if (addr != null && addr.isNotEmpty && !isPlaceholder(addr)) {
+      return addr;
+    }
+    return fallback;
   }
 
   /// Optional second line (street address if building name is title, plus floor).
@@ -101,11 +118,14 @@ class UserLocationModel {
 
   /// Payload for `CreateUserLocationDto` / `UpdateUserLocationDto`.
   Map<String, dynamic> toJson() {
-    final label = myshopLabel;
+    final cleanAddr = streetAddress;
+    final label = (cleanAddr != null && !isPlaceholder(cleanAddr))
+        ? cleanAddr
+        : (buildingName?.trim() ?? 'Saved Location');
     return {
-      'label': ?label,
-      if (address != null && address!.trim().isNotEmpty)
-        'address': address!.trim(),
+      'label': label,
+      if (cleanAddr != null && !isPlaceholder(cleanAddr))
+        'address': cleanAddr,
       if (buildingName != null && buildingName!.trim().isNotEmpty)
         'buildingName': buildingName!.trim(),
       if (floor != null && floor!.trim().isNotEmpty) 'floor': floor!.trim(),

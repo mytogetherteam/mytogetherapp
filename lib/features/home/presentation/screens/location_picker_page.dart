@@ -249,8 +249,16 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 
+  String _normalizePhone(String raw) {
+    var digits = raw.trim().replaceAll(' ', '').replaceAll('-', '');
+    if (digits.startsWith('+66')) digits = digits.substring(3);
+    else if (digits.startsWith('66')) digits = digits.substring(2);
+    if (digits.startsWith('0')) digits = digits.substring(1);
+    return digits;
+  }
+
   bool _phoneDigitsAreValid(String digits) =>
-      RegExp(r'^[689]\d{8}$').hasMatch(digits);
+      RegExp(r'^[689]\d{8}$').hasMatch(_normalizePhone(digits));
 
   Future<bool> _deliveryPhoneReady({bool checkTaken = false}) async {
     if (!_askForPhone) return true;
@@ -266,7 +274,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       return false;
     }
     if (checkTaken) {
-      final taken = await AuthRepository.instance.checkPhoneExists('+66$digits');
+      final normalized = _normalizePhone(digits);
+      final taken = await AuthRepository.instance.checkPhoneExists('+66$normalized');
       if (!mounted) return false;
       if (taken) {
         setState(() => _phoneError = context.tr('location.delivery_phone_taken'));
@@ -281,8 +290,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (!_askForPhone) return true;
     if (!await _deliveryPhoneReady(checkTaken: true)) return false;
     try {
+      final normalized = _normalizePhone(_phoneController.text);
       await AuthRepository.instance.updateProfile(
-        phone: '+66${_phoneController.text.trim()}',
+        phone: '+66$normalized',
       );
       if (mounted) {
         setState(() {

@@ -1,4 +1,4 @@
-﻿/// Myanmar UI strings. Split out of app_translations.dart; see
+/// Myanmar UI strings. Split out of app_translations.dart; see
 /// [AppTranslations] for how keys are resolved and how to add a new one.
 const Map<String, String> kMmTranslations = {
   'location.where_to': 'ဘယ်ကိုသွားမလဲ?',
@@ -161,8 +161,8 @@ const Map<String, String> kMmTranslations = {
   'social.hidden': 'ဖျောက်ထားသည်',
   'social.post_unavailable': 'ဒီပို့စ်ကို ဖွင့်မရပါ။',
   'social.creator_profile': 'ပရိုဖိုင်',
-  'social.follow': 'လိုက်ကြည့်မည်',
-  'social.following': 'လိုက်ကြည့်ထား',
+  'social.follow': 'Follow မယ်',
+  'social.following': 'Follow ပြီးသား',
   'social.visit_shop': 'ဆိုင်သို့ သွားမည်',
   'social.go_to_restaurant': 'စားသောက်ဆိုင်သို့ သွားမည်',
   'social.list_view': 'စာရင်းပုံစံ',
@@ -172,6 +172,12 @@ const Map<String, String> kMmTranslations = {
   'social.viewers_count': 'ကြည့်ရှုသူများ',
   'social.share_profile': 'ပရိုဖိုင် မျှဝေမည်',
   'social.no_posts_creator': 'ပို့စ်များ မရှိသေးပါ',
+  'social.compressing_video': 'ဗီဒီယိုအား အရွယ်အစား ချုံ့နေပါသည်...',
+  'social.pick_video_source': 'ဗီဒီယို ရွေးချယ်ရန်',
+  'social.choose_from_gallery': 'ဖုန်းထဲမှ ရွေးချယ်မည်',
+  'social.record_camera_video': 'ဗီဒီယို အသစ်ရိုက်မည်',
+  'social.pick_photo_source': 'ဓာတ်ပုံ ရွေးချယ်ရန်',
+  'social.choose_photo_gallery': 'ဖုန်းဓာတ်ပုံများထဲမှ ရွေးမည်',
 
   // Profile page
   'profile.edit_profile': 'ပရိုဖိုင်ပြင်ဆင်ရန်',
@@ -600,6 +606,7 @@ const Map<String, String> kMmTranslations = {
   'order_status.food_total': 'အစားအသောက်စုစုပေါင်း',
   'order_status.discount': 'လျှော့ဈေး',
   'order_status.transaction_discount': 'အော်ဒါလျှော့ဈေး',
+  'order_status.view_order': 'အော်ဒါကြည့်ရန်',
   'coupon.sheet_title': 'ရရှိနိုင်သော ကူပွန်များ',
   'coupon.sheet_subtitle': 'ဤအော်ဒါတွင် သုံးရန် လက်မှတ်တစ်ခုကို နှိပ်ပါ',
   'coupon.skip': 'နောက်မှ',
@@ -722,6 +729,7 @@ const Map<String, String> kMmTranslations = {
   'order.status.canceled': 'ပယ်ဖျက်ပြီး',
   'order_tracking.awaiting_confirmation':
       'ဆိုင်ဘက်မှ အတည်ပြုဖို့ စောင့်နေပါတယ်',
+  'order_tracking.skip': 'ကျော်မည်',
   'order_tracking.calculating': 'တွက်ချက်နေတယ်',
   'order_tracking.cancel_confirm': 'ဤအော်ဒါကို ပယ်ဖျက်ရန် သေချာပါသလား?',
   'order_tracking.cancel_order': 'အော်ဒါပယ်ဖျက်မယ်',
@@ -780,7 +788,7 @@ const Map<String, String> kMmTranslations = {
   'currency.to_mmk': '{currency} → MMK',
   'currency.welcome': 'ငွေလဲလှယ်နှုန်း',
   'order_cancel.message':
-      'ဘော်ဒါ့အော်ဒါကို ဆိုင်မှ ပယ်ဖျက်လိုက်ပါတယ်။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
+      'ဘော်ဒါ့အော်ဒါကို ဆိုင်မှ ပယ်ဖျက်လိုက်ပါတယ်။ \n အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
   'order_cancel.reason_title': 'ပယ်ဖျက်ရသည့် အကြောင်းရင်း',
   'order_cancel.sorry': 'စိတ်မကောင်းပါ!',
   'order_cancel.view_restaurant': 'စားသောက်ဆိုင် ကြည့်ရန်',
@@ -788,6 +796,9 @@ const Map<String, String> kMmTranslations = {
   'order_cancel_user.message':
       'ဘော်ဒါ့အော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။ အဆင်မပြေမှုများရှိခဲ့ပါက တောင်းပန်ပါသည်။ နောက်တစ်ကြိမ် ပြန်လည်ဝန်ဆောင်ခွင့်ရရန် မျှော်လင့်ပါတယ်',
   'order_cancel_user.action': 'ပယ်ဖျက်ထားသော အော်ဒါများ ကြည့်ရန်',
+  'order_cancel_system.title': 'စနစ်မှ အော်ဒါ ပယ်ဖျက်လိုက်ပါသည်',
+  'order_cancel_system.message':
+      'စနစ်မှ အော်ဒါကို အလိုအလျောက် ပယ်ဖျက်လိုက်ပါတယ်။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
   'order_complete.arrived_at': 'ရောက်ရှိချိန်: {time}',
   'order_complete.done': 'ပြီးပါပြီ',
   'order_complete.items_placeholder':
@@ -795,10 +806,10 @@ const Map<String, String> kMmTranslations = {
   'order_complete.rate_experience':
       '{shop} တွင် ဘော်ဒါ့အတွေ့အကြုံကို အဆင့်သတ်မှတ်ပါ',
   'order_complete.rate_subtitle':
-      'ဘော်ဒါ့အကြံပြုချက်က အရည်အသွေးနှင့် ပို့ဆောင်မှုကို တိုးတက်စေပါတယ်။',
+      'အော်ဒါအကြံပြုချက်က အရည်အသွေးနှင့် ပို့ဆောင်မှုကို တိုးတက်စေပါသည်',
   'order_complete.title': 'အော်ဒါပြီးစီး',
-  'order_complete.rating_thanks': 'အဆင့်သတ်မှတ်ပေးတဲ့အတွက် ကျေးဇူးတင်ပါတယ်!',
-  'order_complete.delivery_proof': 'ပို့ဆောင်မှု အထောက်အထား',
+  'order_complete.rating_thanks': 'အဆင့်သတ်မှတ်ပေးသည့်အတွက် ကျေးဇူးတင်ပါတယ်! ⭐',
+  'order_complete.delivery_proof': 'ပို့ဆောင်မှု အထောက်အထား ဓာတ်ပုံ',
   'order_complete.rating_failed': 'အဆင့်သတ်မှတ်ချက် တင်၍မရပါ။',
   'payment.promptpay_title': 'PromptPay',
   'payment.promptpay_subtitle': 'Bank Prompt Pay ဖြင့်ပေးချေမည်',
@@ -814,6 +825,9 @@ const Map<String, String> kMmTranslations = {
   'payment.cod_max_limit': 'Cash on Delivery ကို ဘတ် ၁,၅၀၀ အထိသာ အသုံးပြုနိုင်ပါသည်။ ကျေးဇူးပြု၍ PromptPay ကို ရွေးချယ်ပေးပါ',
   'payment.cod_otp_desc': 'Google အကောင့်ဖြင့် ဝင်ထားသောကြောင့် ဖြစ်ပါသည်။ Cash on Delivery အော်ဒါအတွက် သင်၏ ဖုန်းနံပါတ် အမှန်ကို OTP ဖြင့် အတည်ပြုပေးပါ',
   'payment.cod_verify_phone': 'ဖုန်းနံပါတ် အတည်ပြုရန်',
+  'payment.order_phone_title': 'ဆက်သွယ်ရန် ဖုန်းနံပါတ် အတည်ပြုပါ',
+  'payment.order_phone_required_desc': 'အော်ဒါ ပို့ဆောင်ရာတွင် Rider နှင့် ဆိုင်မှ ဆက်သွယ်နိုင်ရန် သင်၏ ဖုန်းနံပါတ် အမှန်ကို OTP ဖြင့် အတည်ပြုပေးပါ',
+  'payment.phone_required_to_order': 'အော်ဒါတင်ရန် ဆက်သွယ်ရမည့် ဖုန်းနံပါတ် အတည်ပြုပေးရန် လိုအပ်ပါသည်',
   'payment.cod_otp_enter': 'OTP ကုဒ် ရိုက်ထည့်ပါ',
   'payment.cod_otp_sent': '{phone} သို့ ပေးပို့ထားသော ၆ လုံးပါ SMS OTP ကုဒ်ကို ထည့်သွင်းပေးပါ',
   'payment.cod_otp_full': 'ကျေးဇူးပြု၍ ၆ လုံးပါ OTP ကုဒ်ကို အပြည့်အစုံ ဖြည့်ပေးပါ',
@@ -901,13 +915,13 @@ const Map<String, String> kMmTranslations = {
   'chat.mic_permission':
       'အသံမက်ဆေ့ချ် ပို့ရန် မိုက်ခရိုဖုန်း ခွင့်ပြုချက် လိုအပ်ပါသည်။',
   'chat.order_unavailable': 'ဤအော်ဒါအတွက် chat မရရှိနိုင်ပါ။',
-  'chat.help_card_title': 'ဤအော်ဒါအတွက် အကူအညီလိုပါသလား။',
+  'chat.help_card_title': 'အကူအညီ လိုအပ်ပါသလား။',
   'chat.help_card_body':
-      'ပစ္စည်းပျောက်ခြင်း သို့မဟုတ် မှားယွင်းခြင်းအတွက် ဆိုင်သို့ စာပို့ပါ။',
+      'မှားယွင်းမှုများရှိပါက ဆိုင်သို့ တိုက်ရိုက် မေးမြန်းနိုင်ပါတယ်။',
   'chat.message_shop': 'ဆိုင်သို့ စာပို့ရန်',
   'chat.time_left': '{time} ကျန်',
   'chat.window_hint':
-      '{time}\u00A0ကျန် · အော်ဒါပြီးဆုံးပြီးနောက် ၄ နာရီအတွင်း ဆိုင်သို့ စာပို့နိုင်ပါတယ်',
+      '{time}\u00A0ကျန် • အော်ဒါပြီးဆုံးပြီး ၄ နာရီအတွင်း ဆိုင်သို့ စာပို့နိုင်ပါသည်',
   'chat.window_hint_no_time':
       'အော်ဒါပြီးဆုံးပြီးနောက် ၄ နာရီအတွင်း ဆိုင်သို့ စာပို့နိုင်ပါတယ်။',
   'chat.view_messages': 'မက်ဆေ့ချ်များ ကြည့်ရန်',

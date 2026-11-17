@@ -366,6 +366,7 @@ class _ActiveOrderBarState extends State<ActiveOrderBar>
               isVerified: order.isVerified,
             ),
             foodTotal: order.resolvedItemSubtotal.round(),
+            allowVideo: false,
           ),
         ),
       );

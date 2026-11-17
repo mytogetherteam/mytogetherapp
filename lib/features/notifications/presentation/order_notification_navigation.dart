@@ -170,6 +170,7 @@ Future<void> navigateToOrderFromNotification(
             items: order.orderItems,
           ),
           foodTotal: order.resolvedItemSubtotal.round(),
+          allowVideo: false,
         ),
       ),
     );

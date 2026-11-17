@@ -52,6 +52,7 @@ class ChatWindowHint extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.14)),
       ),
       child: row,
     );

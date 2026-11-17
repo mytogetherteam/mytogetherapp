@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:ui';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -1195,7 +1196,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 30),
                           ],
                         ),
                       ),
@@ -1378,12 +1379,11 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 20,
+                                  blurRadius: 22,
                                   offset: const Offset(0, 6),
                                 ),
                                 BoxShadow(
@@ -1392,12 +1392,21 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                   offset: const Offset(0, 1),
                                 ),
                               ],
-                              border: Border.all(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                width: 1,
-                              ),
                             ),
-                            child: Column(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.75),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -1409,13 +1418,13 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                       vertical: 8,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF1F2),
+                                      color: const Color(0xFFFFF1F2).withValues(alpha: 0.85),
                                       borderRadius: const BorderRadius.vertical(
                                         top: Radius.circular(19),
                                       ),
                                       border: Border(
                                         bottom: BorderSide(
-                                          color: const Color(0xFFFECDD3).withValues(alpha: 0.7),
+                                          color: const Color(0xFFFECDD3).withValues(alpha: 0.60),
                                           width: 1,
                                         ),
                                       ),
@@ -1423,7 +1432,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                     child: Row(
                                       children: [
                                         const Icon(
-                                          PhosphorIcons.clockCountdown,
+                                          PhosphorIcons.clockCountdownBold,
                                           size: 14,
                                           color: Color(0xFFE11D48),
                                         ),
@@ -1701,6 +1710,29 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                                                 ],
                                               );
                                             }
+                                          } else {
+                                            openStatusWidget = Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 6,
+                                                  height: 6,
+                                                  decoration: const BoxDecoration(
+                                                    color: Color(0xFFE11D48),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  context.tr('common.closed'),
+                                                  style: AppFonts.poppins(
+                                                    fontSize: 11.5,
+                                                    color: const Color(0xFFE11D48),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            );
                                           }
 
                                           // Line 2: Category · Rating
@@ -1806,15 +1838,18 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                             ),
                           ),
                         ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
 
             // Active Order Bar & Cart Summary
             Positioned(
@@ -2252,16 +2287,47 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     if (_orderAvailability?.isBlocked ?? false) {
       slivers.add(
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(
-              _orderAvailability!.menuBrowseHint(context),
-              style: AppFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey.shade600,
-                height: 1.4,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1F2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFFECDD3).withValues(alpha: 0.8),
+                width: 1,
               ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      PhosphorIcons.infoBold,
+                      size: 15,
+                      color: Color(0xFFE11D48),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _orderAvailability!.menuBrowseHint(context),
+                    style: AppFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF9F1239),
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -2270,7 +2336,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
     if (_lastOrder.isNotEmpty) {
       slivers.add(
         SliverToBoxAdapter(
-          child: LastOrderStrip(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: LastOrderStrip(
             dishes: _lastOrder,
             liveItem: _liveMenuItem,
             orderableIds: _orderableLastOrderIds,
@@ -2280,6 +2348,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
             onAddAll: _addAllLastOrder,
             onAdd: _addOneLastOrder,
             onOpen: _openLastOrderDish,
+            ),
           ),
         ),
       );

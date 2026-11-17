@@ -214,14 +214,30 @@ class SocialPostsRepository {
       form.fields.add(MapEntry('content', caption));
     }
     for (var i = 0; i < media.length; i++) {
+      final item = media[i];
       form.files.add(
         MapEntry(
           'media',
-          media[i].toMultipartFile(
-            filenameOverride: 'media_$i.${media[i].extension}',
+          item.toMultipartFile(
+            filenameOverride: 'media_$i.${item.extension}',
           ),
         ),
       );
+      if (item.isVideo && item.thumbnailBytes != null) {
+        form.files.add(
+          MapEntry(
+            'thumbnails',
+            MultipartFile.fromBytes(
+              item.thumbnailBytes!,
+              filename: 'thumb_$i.jpg',
+              contentType: DioMediaType.parse('image/jpeg'),
+            ),
+          ),
+        );
+      }
+      if (item.isVideo && item.duration != null) {
+        form.fields.add(MapEntry('durations[]', item.duration.toString()));
+      }
     }
     final response = await _dio.post(
       '${ApiClient.apiPrefix}/user/posts',

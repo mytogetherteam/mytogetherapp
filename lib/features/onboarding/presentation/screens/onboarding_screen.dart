@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../data/onboarding_prefs.dart';
+import '../../../home/data/home_badge_prefs.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/localization/locale_controller.dart';
 import '../../../../core/localization/app_language.dart';
@@ -123,6 +124,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _completeOnboarding() async {
     await OnboardingPrefs.setHasSeenOnboarding(true);
+    await HomeBadgePrefs.markEligibleForFirstTimeBadges();
     if (!mounted) return;
 
     if (AuthService().isLoggedIn) {

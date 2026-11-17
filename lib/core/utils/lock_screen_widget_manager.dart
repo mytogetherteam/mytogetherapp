@@ -221,9 +221,21 @@ class LockScreenWidgetManager {
       case 2:
         return 'Preparing your order';
       case 3:
-        return order.estimatedTime != null && order.estimatedTime!.isNotEmpty
-            ? 'Est. Arrival: ${TimeFormatter.normalizeDisplay(order.estimatedTime!)}'
-            : 'On the way';
+        final int estMins;
+        if (order.riderRemainingMins != null && order.riderRemainingMins! > 0) {
+          estMins = order.riderRemainingMins!;
+        } else if (order.routeDurationMins != null && order.routeDurationMins! > 0) {
+          estMins = order.routeDurationMins!;
+        } else {
+          final match = RegExp(r'(\d+)').firstMatch(order.estimatedTime ?? '');
+          final parsed = match != null ? int.tryParse(match.group(1)!) : null;
+          if (parsed != null && parsed > 0) {
+            estMins = parsed <= 20 ? parsed : (parsed * 0.28).round().clamp(8, 18);
+          } else {
+            estMins = 12;
+          }
+        }
+        return 'Est. Arrival: ~$estMins mins';
       case 4:
         return 'Delivered';
       default:

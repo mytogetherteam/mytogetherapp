@@ -654,6 +654,8 @@ class ActiveOrderState extends ChangeNotifier {
     return active.isNotEmpty ? active.last : null;
   }
 
+  ActiveOrderItem? get primaryOrder => _primary;
+
   void _purgeTerminalOrders() {
     _orders.removeWhere((_, o) => o.orderStatus == 4 || o.orderStatus == -1);
     if (_primaryOrderId != null && !_orders.containsKey(_primaryOrderId)) {
@@ -829,6 +831,9 @@ class ActiveOrderState extends ChangeNotifier {
   }
   List<LatLng> get routePoints => _primary?.routePoints ?? [];
   double? get routeDistanceKm => _primary?.routeDistanceKm;
+  set routeDistanceKm(double? val) {
+    if (_primary != null) _primary!.routeDistanceKm = val;
+  }
   int? get routeDurationMins => _primary?.routeDurationMins;
   set routeDurationMins(int? val) {
     if (_primary != null) _primary!.routeDurationMins = val;
@@ -2087,9 +2092,11 @@ class ActiveOrderState extends ChangeNotifier {
     String? orderId,
   }) {
     final targetId = orderId ?? this.orderId;
-    if (targetId == null || !_orders.containsKey(targetId)) return;
+    final item = (targetId != null && _orders.containsKey(targetId))
+        ? _orders[targetId]
+        : _primary;
+    if (item == null) return;
 
-    final item = _orders[targetId]!;
     item.routePoints = points;
     item.routeDistanceKm = distanceKm;
     item.routeDurationMins = durationMins;

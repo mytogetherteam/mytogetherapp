@@ -123,7 +123,12 @@ class _RegisterPageState extends State<RegisterPage>
     });
 
     try {
-      var cleanPhone = _phoneController.text.trim().replaceAll(' ', '');
+      var cleanPhone = _phoneController.text.trim().replaceAll(' ', '').replaceAll('-', '');
+      if (cleanPhone.startsWith('+66')) {
+        cleanPhone = cleanPhone.substring(3);
+      } else if (cleanPhone.startsWith('66')) {
+        cleanPhone = cleanPhone.substring(2);
+      }
       if (cleanPhone.startsWith('0')) {
         cleanPhone = cleanPhone.substring(1);
       }
@@ -543,12 +548,23 @@ class _RegisterPageState extends State<RegisterPage>
             ),
           ),
           keyboardType: TextInputType.phone,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
           validator: (v) {
             if (v == null || v.trim().isEmpty) return context.tr('auth.enter_phone');
-            final cleanPhone = v.replaceAll(' ', '');
-            // Strict Thai mobile validation: Must be exactly 9 digits and start with 6, 8, or 9 
-            // (representing 06, 08, 09 when combined with +66)
+            var cleanPhone = v.trim().replaceAll(' ', '').replaceAll('-', '');
+            if (cleanPhone.startsWith('+66')) {
+              cleanPhone = cleanPhone.substring(3);
+            } else if (cleanPhone.startsWith('66')) {
+              cleanPhone = cleanPhone.substring(2);
+            }
+            if (cleanPhone.startsWith('0')) {
+              cleanPhone = cleanPhone.substring(1);
+            }
+            // Strict Thai mobile validation: When leading 0 is stripped, must be 9 digits starting with 6, 8, or 9
+            // (representing 06, 08, 09 when entered with 0, or 6, 8, 9 when entered without 0)
             if (!RegExp(r'^[689]\d{8}$').hasMatch(cleanPhone)) {
               return context.tr('auth.invalid_thai_phone');
             }

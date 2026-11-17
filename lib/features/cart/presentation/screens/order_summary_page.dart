@@ -493,7 +493,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         loc.longitude != null &&
         loc.latitude != 0 &&
         loc.longitude != 0;
-    final hasAddress = (loc.streetAddress?.trim().isNotEmpty ?? false);
+    final addr = loc.streetAddress?.trim() ?? '';
+    final hasAddress = addr.length >= 5 && !UserLocationModel.isPlaceholder(addr);
     return hasCoords && hasAddress;
   }
 
@@ -501,8 +502,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     if (!_isDelivery || GuestAuthGuard.isGuest || !mounted) return;
     if (_hasValidDeliveryAddress()) return;
     if (_forcedAddressFlowOpen) return;
-    if (!await DeliveryAddressPrefs.requiresForcedSetup()) return;
-    await _openForcedAddressSetup();
+    await _ensureValidDeliveryAddressForOrder();
   }
 
   Future<void> _openForcedAddressSetup() async {
@@ -529,9 +529,46 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       await DeliveryAddressPrefs.setCompletedSetup(true);
       return true;
     }
-    if (await DeliveryAddressPrefs.requiresForcedSetup()) {
-      await _openForcedAddressSetup();
+
+    // Try auto reverse-geocoding if coordinates exist but address is missing/placeholder
+    final loc = _primaryLocation;
+    if (loc != null &&
+        loc.latitude != null &&
+        loc.longitude != null &&
+        loc.latitude != 0 &&
+        loc.longitude != 0) {
+      try {
+        final resolved = await LocationSearchService.instance.reverseGeocode(
+          loc.latitude!,
+          loc.longitude!,
+        );
+        if (resolved != null && resolved.displayName.trim().isNotEmpty) {
+          final updated = loc.copyWith(
+            address: resolved.displayName.trim(),
+            buildingName: loc.buildingName ??
+                (resolved.name.trim().isNotEmpty ? resolved.name.trim() : null),
+          );
+          UserLocationRepository.instance.setActiveLocation(updated);
+          if (loc.id > 0) {
+            UserLocationRepository.instance
+                .updateLocation(updated)
+                .catchError((_) => updated);
+          }
+          if (mounted) {
+            setState(() {
+              _primaryLocation = updated;
+            });
+          }
+          if (_hasValidDeliveryAddress()) {
+            await DeliveryAddressPrefs.setCompletedSetup(true);
+            return true;
+          }
+        }
+      } catch (_) {}
     }
+
+    // Still missing valid delivery address? Open forced location picker
+    await _openForcedAddressSetup();
     if (!mounted) return false;
     return _hasValidDeliveryAddress();
   }
@@ -554,12 +591,14 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (loc != null &&
           loc.streetAddress == null &&
           loc.latitude != null &&
-          loc.longitude != null) {
+          loc.longitude != null &&
+          loc.latitude != 0 &&
+          loc.longitude != 0) {
         final stored = await SessionLocationStore.addressNear(
           loc.latitude!,
           loc.longitude!,
         );
-        if (stored != null) {
+        if (stored != null && !UserLocationModel.isPlaceholder(stored)) {
           loc = loc.copyWith(address: stored);
         } else {
           final resolved = await LocationSearchService.instance.reverseGeocode(
@@ -567,7 +606,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             loc.longitude!,
           );
           if (resolved?.displayName.trim().isNotEmpty ?? false) {
-            loc = loc.copyWith(address: resolved!.displayName.trim());
+            loc = loc.copyWith(
+              address: resolved!.displayName.trim(),
+              buildingName: loc.buildingName ??
+                  (resolved.name.trim().isNotEmpty ? resolved.name.trim() : null),
+            );
+            if (loc.id > 0) {
+              UserLocationRepository.instance
+                  .updateLocation(loc)
+                  .catchError((_) => loc!);
+            }
           }
         }
       }
@@ -858,7 +906,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   /// Street address sent on order creation.
   String? _primaryLocationAddressText() {
-    return _primaryLocation?.streetAddress;
+    final addr = _primaryLocation?.streetAddress?.trim();
+    if (addr == null ||
+        addr.length < 5 ||
+        UserLocationModel.isPlaceholder(addr)) {
+      return null;
+    }
+    return addr;
   }
 
   /// Address fields accepted by `CreateUserOrderDto` on the backend.
@@ -902,11 +956,28 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
-  Future<String?> _promptForPhoneBottomSheet() async {
+  bool _isRealCustomerPhone(String? phone) {
+    if (phone == null) return false;
+    final trimmed = phone.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.startsWith('g_') ||
+        trimmed.startsWith('g-') ||
+        trimmed.startsWith('google') ||
+        trimmed.contains('@')) {
+      return false;
+    }
+    final digitsOnly = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+      return false;
+    }
+    return RegExp(r'^\+?[0-9\s\-()]+$').hasMatch(trimmed);
+  }
+
+  Future<String?> _promptForPhoneBottomSheet({bool isCod = false}) async {
     return await GlobalModal.show<String>(
       context: context,
       barrierDismissible: true,
-      child: const _CodPhonePromptModal(),
+      child: _CodPhonePromptModal(isCod: isCod),
     );
   }
 
@@ -1004,16 +1075,37 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         return;
       }
 
-      if (_selectedDirectChannel == 'COD') {
-        final rawPhone = AuthService().currentUser?.phone?.trim() ?? '';
-        final hasRealPhone = rawPhone.length >= 6 && !rawPhone.startsWith('g_');
-        if (!hasRealPhone) {
-          final savedPhone = await _promptForPhoneBottomSheet();
-          if (savedPhone == null || savedPhone.length < 6) {
-            return;
-          }
+      // Validate customer phone for ALL orders (Verified & Unverified shops, all payment channels)
+      final rawPhone = AuthService().currentUser?.phone?.trim() ?? '';
+      final hasRealPhone = _isRealCustomerPhone(rawPhone);
+      if (!hasRealPhone) {
+        final isCod = _selectedDirectChannel == 'COD';
+        final savedPhone = await _promptForPhoneBottomSheet(isCod: isCod);
+        if (savedPhone == null || !_isRealCustomerPhone(savedPhone)) {
+          return;
         }
+      }
 
+      // Validate real delivery address for ALL delivery orders (Verified & Unverified shops)
+      if (_isDelivery) {
+        final hasValidAddr = await _ensureValidDeliveryAddressForOrder();
+        if (!hasValidAddr) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  context.tr('location.street_address_required'),
+                  style: AppFonts.poppins(),
+                ),
+                backgroundColor: const Color(0xFFEF4444),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (_selectedDirectChannel == 'COD') {
         final foodSubtotal = CartManager.instance.getStoreTotal(widget.store.nameKey).toDouble();
         final tax = (_restaurant?.taxEnable ?? true) ? (foodSubtotal * 0.07) : 0.0;
         final delivery = (_isDelivery && !_isFreeDelivery)
@@ -1291,6 +1383,17 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           e,
           fallback: LocaleController.instance.tr('cart.unknown_error'),
         );
+        final lower = errorMsg.toLowerCase();
+        if (lower.contains('phone number is required') ||
+            lower.contains('phone number required') ||
+            lower.contains('customer phone')) {
+          final isCod = _selectedDirectChannel == 'COD';
+          final savedPhone = await _promptForPhoneBottomSheet(isCod: isCod);
+          if (savedPhone != null && _isRealCustomerPhone(savedPhone)) {
+            _onPlaceOrderPressed();
+          }
+          return;
+        }
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3789,7 +3892,8 @@ class _CouponRowIconButton extends StatelessWidget {
 }
 
 class _CodPhonePromptModal extends StatefulWidget {
-  const _CodPhonePromptModal();
+  final bool isCod;
+  const _CodPhonePromptModal({this.isCod = false});
 
   @override
   State<_CodPhonePromptModal> createState() => _CodPhonePromptModalState();
@@ -3993,7 +4097,9 @@ class _CodPhonePromptModalState extends State<_CodPhonePromptModal> {
           ),
           const SizedBox(height: 16),
           Text(
-            context.tr('payment.cod_verify_phone'),
+            widget.isCod
+                ? context.tr('payment.cod_verify_phone')
+                : context.tr('payment.order_phone_title'),
             textAlign: TextAlign.center,
             style: AppFonts.poppins(
               fontSize: 18,
@@ -4003,7 +4109,9 @@ class _CodPhonePromptModalState extends State<_CodPhonePromptModal> {
           ),
           const SizedBox(height: 8),
           Text(
-            context.tr('payment.cod_otp_desc'),
+            widget.isCod
+                ? context.tr('payment.cod_otp_desc')
+                : context.tr('payment.order_phone_required_desc'),
             textAlign: TextAlign.center,
             style: AppFonts.poppins(
               fontSize: 13,

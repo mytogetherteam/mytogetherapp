@@ -43,7 +43,6 @@ import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../chat/presentation/widgets/chat_shake_animator.dart';
 import '../../../reviews/presentation/widgets/image_upload_bottom_sheet.dart';
 import '../../../../app.dart';
-import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import '../../../call/data/call_session.dart';
 
@@ -110,21 +109,6 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage>
     if (route is PageRoute) {
       App.routeObserver.subscribe(this, route);
     }
-  }
-
-  @override
-  void didPush() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
-  }
-
-  @override
-  void didPopNext() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
-  }
-
-  @override
-  void didPop() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
   }
 
   @override

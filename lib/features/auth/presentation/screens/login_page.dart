@@ -68,7 +68,12 @@ class _LoginPageState extends State<LoginPage>
 
     setState(() => _isLoading = true);
 
-    var cleanPhone = _phoneController.text.trim().replaceAll(' ', '');
+    var cleanPhone = _phoneController.text.trim().replaceAll(' ', '').replaceAll('-', '');
+    if (cleanPhone.startsWith('+66')) {
+      cleanPhone = cleanPhone.substring(3);
+    } else if (cleanPhone.startsWith('66')) {
+      cleanPhone = cleanPhone.substring(2);
+    }
     if (cleanPhone.startsWith('0')) {
       cleanPhone = cleanPhone.substring(1);
     }
@@ -262,15 +267,23 @@ class _LoginPageState extends State<LoginPage>
                                 keyboardType: TextInputType.phone,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(10),
                                 ],
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
                                     return context.tr('auth.enter_phone');
                                   }
-                                  final cleanPhone = v.replaceAll(' ', '');
-                                  if (!RegExp(
-                                    r'^\d{8,9}$',
-                                  ).hasMatch(cleanPhone)) {
+                                  var cleanPhone = v.trim().replaceAll(' ', '').replaceAll('-', '');
+                                  if (cleanPhone.startsWith('+66')) {
+                                    cleanPhone = cleanPhone.substring(3);
+                                  } else if (cleanPhone.startsWith('66')) {
+                                    cleanPhone = cleanPhone.substring(2);
+                                  }
+                                  if (cleanPhone.startsWith('0')) {
+                                    cleanPhone = cleanPhone.substring(1);
+                                  }
+                                  if (!RegExp(r'^[689]\d{8}$').hasMatch(cleanPhone) &&
+                                      !RegExp(r'^\d{8,9}$').hasMatch(cleanPhone)) {
                                     return context.tr(
                                       'auth.invalid_thai_phone',
                                     );

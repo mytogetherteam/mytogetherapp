@@ -37,7 +37,6 @@ import '../../../chat/presentation/screens/chat_page.dart';
 import '../../../chat/data/services/chat_unread_controller.dart';
 import '../../../chat/presentation/widgets/chat_unread_badge.dart';
 import '../../../../app.dart';
-import '../../../chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/screens/call_screen.dart';
 import '../../../call/data/call_session.dart';
 import '../../../home/data/repositories/restaurant_repository.dart';
@@ -56,6 +55,7 @@ class OrderTrackingPage extends StatefulWidget {
   final Restaurant? restaurant;
   final int foodTotal;
   final double? deliveryFee;
+  final bool allowVideo;
 
   const OrderTrackingPage({
     super.key,
@@ -63,6 +63,7 @@ class OrderTrackingPage extends StatefulWidget {
     this.restaurant,
     this.foodTotal = 0,
     this.deliveryFee,
+    this.allowVideo = true,
   });
 
   @override
@@ -226,9 +227,52 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   BitmapDescriptor? _shopIcon;
   BitmapDescriptor? _restaurantBubbleIcon;
 
-  bool _showAdScreen = true;
+  static final Set<int> _ordersWithVideoPlayed = {};
+
+  bool get _canPlayVideoForThisOrder {
+    if (!widget.allowVideo) return false;
+    final id = _currentOrderId;
+    if (id != null && _ordersWithVideoPlayed.contains(id)) return false;
+    return true;
+  }
+
+  bool _showAdScreen = false;
   int _adSecondsRemaining = 15;
   Timer? _adTimer;
+  bool _isAdVideoMuted = false;
+
+  bool get _currentAdHasVideo =>
+      _showAdScreen && _canPlayVideoForThisOrder && (_currentAdSlide?.hasVideo ?? false);
+
+  void _pauseAdVideo() {
+    final video = _adVideo;
+    if (video != null && video.value.isInitialized && video.value.isPlaying) {
+      video.pause();
+    }
+  }
+
+  void _resumeAdVideo() {
+    final video = _adVideo;
+    if (video != null &&
+        video.value.isInitialized &&
+        !video.value.isPlaying &&
+        _showAdScreen &&
+        _currentAdHasVideo) {
+      video.play();
+    }
+  }
+
+  void _toggleAdVideoMute() {
+    setState(() {
+      _isAdVideoMuted = !_isAdVideoMuted;
+    });
+    _adVideo?.setVolume(_isAdVideoMuted ? 0.0 : 1.0);
+  }
+
+  void _startAdTimer() {
+    _adTimer?.cancel();
+    // Do not auto-skip waiting screen on a timer. User can skip manually.
+  }
 
   @override
   void didChangeDependencies() {
@@ -240,24 +284,8 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   }
 
   @override
-  void didPush() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
-  }
-
-  @override
-  void didPopNext() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
-  }
-
-  @override
-  void didPop() {
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = false);
-  }
-
-  @override
   void initState() {
     super.initState();
-    Future.microtask(() => FloatingChatHead.isHiddenNotifier.value = true);
 
     final itemUrls = <String>{};
     if (widget.store.items.isNotEmpty) {
@@ -290,19 +318,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
       if (longWait != _showLongWaitHint) {
         setState(() => _showLongWaitHint = longWait);
       }
-    });
-
-    _adTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_adSecondsRemaining > 0) {
-        setState(() => _adSecondsRemaining--);
-        return;
-      }
-      timer.cancel();
-      _endAdScreen();
     });
 
     // Solid idle trailing animation
@@ -522,10 +537,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _resumeAdVideo();
       // Socket may have been torn down while backgrounded; force a reconnect
       // and immediately catch up via REST in case an update was missed.
       WebSocketService().connect(force: true);
       _reconcileWithBackend(forceNavigation: true);
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _pauseAdVideo();
     }
   }
 
@@ -587,6 +606,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _navigateToCancelPage() {
     if (!mounted) return;
+    _endAdScreen();
     _statusPollTimer?.cancel();
     final cancelledOrder = ActiveOrderState.instance.getOrder(ActiveOrderState.instance.orderId);
     Navigator.pushReplacement(
@@ -632,21 +652,24 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     super.dispose();
   }
 
-  void _initSlideImages() {
-    final urls = <String>{};
-    for (final item in widget.store.items) {
-      final url = FileUrlUtil.resolve(item.imageUrl ?? item.imagePath);
-      if (url.isNotEmpty) urls.add(url);
-    }
-    if (urls.isEmpty && _restaurantLogoUrl != null) {
-      urls.add(_restaurantLogoUrl!);
-    }
-    _adSlides = urls.map((url) => _OrderAdSlide(imageUrl: url)).toList();
-    _currentImageIndex = 0;
+  @override
+  void didPushNext() {
+    _pauseAdVideo();
+    super.didPushNext();
+  }
 
-    // Prefer admin "Order Waiting" banners as the confirming-screen hero.
+  @override
+  void didPopNext() {
+    _resumeAdVideo();
+    super.didPopNext();
+  }
+
+  void _initSlideImages() {
+    _adSlides = [];
+    _currentImageIndex = 0;
+    // Only show ad screen if order waiting banners exist from API;
+    // otherwise normally show wave style screen.
     _fetchOrderWaitingBanner();
-    _startAdSlide();
   }
 
   _OrderAdSlide? get _currentAdSlide {
@@ -720,6 +743,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _adVideoCompletionHandled = false;
     await _disposeAdVideo(previous);
     if (!mounted || generation != _adVideoGeneration || !_showAdScreen) return;
+    if (!_canPlayVideoForThisOrder) return;
 
     final url = _currentAdSlide?.videoUrl;
     if (url == null || url.isEmpty) return;
@@ -736,10 +760,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         if (identical(_adVideo, controller)) _adVideo = null;
         return;
       }
-      await controller.setLooping(false);
-      await controller.setVolume(0);
+      await controller.setLooping(true);
+      await controller.setVolume(_isAdVideoMuted ? 0.0 : 1.0);
       controller.addListener(_onAdVideoTick);
       await controller.play();
+      final id = _currentOrderId;
+      if (id != null) {
+        _ordersWithVideoPlayed.add(id);
+      }
       if (!mounted || generation != _adVideoGeneration) return;
       setState(() => _adVideoReady = true);
     } catch (_) {
@@ -787,21 +815,24 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         slides.add(
           _OrderAdSlide(
             imageUrl: imageUrl,
-            videoUrl: videoUrl != null && videoUrl.isNotEmpty ? videoUrl : null,
+            videoUrl: _canPlayVideoForThisOrder && videoUrl != null && videoUrl.isNotEmpty ? videoUrl : null,
           ),
         );
       }
       if (slides.isEmpty) return;
 
       _slideshowTimer?.cancel();
+      if (!mounted) return;
       setState(() {
         _adSlides = slides;
         _currentImageIndex = 0;
         _adVideoReady = false;
+        _showAdScreen = true;
       });
+      _startAdTimer();
       _startAdSlide();
     } catch (_) {
-      // Keep the food-photo slideshow when banners cannot be loaded.
+      // Keep normal wave style screen when banners cannot be loaded.
     }
   }
 
@@ -1333,6 +1364,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _navigateToPayment() {
     if (!mounted || AwaitingPaymentPage.isCurrentlyVisible) return;
+    _endAdScreen();
     _statusPollTimer?.cancel();
     _idleSequenceTimer?.cancel();
     _idleSolidController.stop();
@@ -1353,6 +1385,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
   void _navigateToOrderStatus({bool autoShowPaymentSheet = false}) {
     if (!mounted || OrderStatusPage.isCurrentlyVisible) return;
+    _endAdScreen();
     _statusPollTimer?.cancel();
     final fee = _effectiveDeliveryFee;
     Navigator.pushReplacement(
@@ -1408,67 +1441,145 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               ),
             ),
 
+          // ── TOP-LEFT CLOSE WAITING STATE (DOWN ICON BUTTON) ────────────────
           if (_showAdScreen)
             Positioned(
               top: MediaQuery.of(context).padding.top + 10,
-              right: 16,
+              left: 16,
               child: GestureDetector(
                 onTap: _endAdScreen,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Skip',
-                        style: AppFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                child: ClipOval(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          width: 1,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 1.0, end: 0.0),
-                            duration: const Duration(seconds: 15),
-                            builder: (context, value, _) {
-                              return SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  value: value,
-                                  color: AppColors.primary,
-                                  backgroundColor: Colors.white24,
-                                  strokeWidth: 2.5,
-                                ),
-                              );
-                            },
-                          ),
-                          Text(
-                            '$_adSecondsRemaining',
-                            style: AppFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
                           ),
                         ],
                       ),
-                    ],
+                      child: const Center(
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
 
+          // ── TOP-RIGHT WAITING ACTIONS (MUTE & SKIP) ────────────────────────
+          if (_showAdScreen)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              right: 16,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_currentAdHasVideo) ...[
+                    GestureDetector(
+                      onTap: _toggleAdVideoMute,
+                      child: ClipOval(
+                        child: BackdropFilter(
+                          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                _isAdVideoMuted
+                                    ? Icons.volume_off_rounded
+                                    : Icons.volume_up_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  GestureDetector(
+                    onTap: _endAdScreen,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.tr('order_tracking.skip'),
+                                style: AppFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: Colors.white,
+                                size: 11,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-          // ── COMPACT ORDER BOTTOM SHEET (~28%) ──────────────────────────────
+          // ── COMPACT ORDER BOTTOM SHEET ─────────────────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
@@ -1484,51 +1595,57 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 }
               },
               child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 20,
-                    offset: Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Drag handle
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 2),
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFCBD5E1),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 20,
+                      offset: Offset(0, -4),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr(
-                              'order_tracking.awaiting_confirmation',
-                            ),
-                            style: AppFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1E293B),
-                              letterSpacing: -0.3,
+                  ],
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Drag handle
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _isBottomSheetExpanded = !_isBottomSheetExpanded);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10, bottom: 4),
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr(
+                                'order_tracking.awaiting_confirmation',
+                              ),
+                              style: AppFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1E293B),
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
                             AnimatedDotsText(
                               baseText: context.tr(
                                 'order_tracking.restaurant_reviewing',
@@ -1608,80 +1725,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                               },
                             ),
 
-                            const SizedBox(height: 16),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ChatUnreadBadge(
-                                    orderId: _currentOrderId,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        final state = ActiveOrderState.instance;
-                                        _openChat(
-                                          name: state.restaurantName ??
-                                              widget.store.name,
-                                          subtitle: context.tr('common.restaurant'),
-                                          avatarUrl: state.logoPath,
-                                        );
-                                      },
-                                      child: Container(
-                                        height: 44,
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF8FAFC),
-                                          borderRadius: BorderRadius.circular(24),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              PhosphorIcons.chatCircleTextFill,
-                                              color: const Color(0xFF1E293B),
-                                              size: 18,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              context.tr('order_confirm.chat'),
-                                              style: AppFonts.poppins(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                                color: const Color(0xFF64748B),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                GestureDetector(
-                                  onTap: () {
-                                    _makeCall(ActiveOrderState.instance.shopPhone);
-                                  },
-                                  child: Container(
-                                    height: 44,
-                                    width: 44,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      PhosphorIcons.phoneFill,
-                                      color: Color(0xFF1E293B),
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 16),
-
                             AnimatedSize(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeInOut,
@@ -1689,6 +1732,77 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                                   ? const SizedBox(width: double.infinity)
                                   : Column(
                                       children: [
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: ChatUnreadBadge(
+                                                orderId: _currentOrderId,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    final state = ActiveOrderState.instance;
+                                                    _openChat(
+                                                      name: state.restaurantName ??
+                                                          widget.store.name,
+                                                      subtitle: context.tr('common.restaurant'),
+                                                      avatarUrl: state.logoPath,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    height: 44,
+                                                    width: double.infinity,
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFF8FAFC),
+                                                      borderRadius: BorderRadius.circular(24),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(
+                                                          PhosphorIcons.chatCircleTextFill,
+                                                          color: const Color(0xFF1E293B),
+                                                          size: 18,
+                                                        ),
+                                                        const SizedBox(width: 10),
+                                                        Text(
+                                                          context.tr('order_confirm.chat'),
+                                                          style: AppFonts.poppins(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: const Color(0xFF64748B),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            GestureDetector(
+                                              onTap: () {
+                                                _makeCall(ActiveOrderState.instance.shopPhone);
+                                              },
+                                              child: Container(
+                                                height: 44,
+                                                width: 44,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF8FAFC),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  PhosphorIcons.phoneFill,
+                                                  color: Color(0xFF1E293B),
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
                                         Container(
                                           padding: const EdgeInsets.all(16),
                                           decoration: BoxDecoration(
@@ -1935,6 +2049,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
 
     ChatUnreadController.instance.clear(orderId);
 
+    _pauseAdVideo();
     final peerName = (name == null || name.trim().isEmpty) ? subtitle : name;
     await Navigator.push(
       context,
@@ -1947,6 +2062,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         ),
       ),
     );
+    _resumeAdVideo();
   }
 
   Widget _buildInfoRow({
@@ -2337,25 +2453,26 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             ),
           ),
 
-          // Soft bottom fade into the sheet
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 72,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.25),
-                  ],
+          // Soft bottom fade into the sheet (only for static image slides)
+          if (!activeSlide.hasVideo)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 72,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.25),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Slideshow progress segments (Grab-style story bars)
           if (slideCount > 1)
@@ -2385,45 +2502,46 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               ),
             ),
 
-          // Restaurant chip over the ad (bottom-left of media)
-          Positioned(
-            left: 16,
-            bottom: 36,
-            right: 16,
-            child: Row(
-              children: [
-                if (_restaurantLogoUrl != null) ...[
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundImage: CachedNetworkImageProvider(
-                      _restaurantLogoUrl!,
+          // Restaurant chip over the ad (bottom-left of media) (only for static image slides)
+          if (!activeSlide.hasVideo)
+            Positioned(
+              left: 16,
+              bottom: 36,
+              right: 16,
+              child: Row(
+                children: [
+                  if (_restaurantLogoUrl != null) ...[
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundImage: CachedNetworkImageProvider(
+                        _restaurantLogoUrl!,
+                      ),
+                      backgroundColor: Colors.white,
                     ),
-                    backgroundColor: Colors.white,
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: VerifiedRestaurantNameRow(
+                      name: _restaurantName,
+                      isVerified: widget.restaurant?.isVerified ??
+                          ActiveOrderState.instance.isVerified,
+                      style: AppFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      badgeSize: MyTogetherVerifiedBadge.cardSize,
+                    ),
                   ),
-                  const SizedBox(width: 8),
                 ],
-                Flexible(
-                  child: VerifiedRestaurantNameRow(
-                    name: _restaurantName,
-                    isVerified: widget.restaurant?.isVerified ??
-                        ActiveOrderState.instance.isVerified,
-                    style: AppFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                    badgeSize: MyTogetherVerifiedBadge.cardSize,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -5,7 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/media/picked_image.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/media/image_crop_helper.dart';
+import '../../../../core/media/video_compress_helper.dart';
 import '../../../../core/presentation/widgets/app_dialog.dart';
 import '../../../../core/utils/haptic_splash_factory.dart';
 import '../../data/repositories/social_posts_repository.dart';
@@ -23,9 +25,12 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
   final _picker = ImagePicker();
   final List<PickedImage> _media = [];
   bool _submitting = false;
+  bool _isCompressing = false;
 
   bool get _canPublish =>
-      _media.isNotEmpty || _captionController.text.trim().isNotEmpty;
+      (_media.isNotEmpty || _captionController.text.trim().isNotEmpty) &&
+      !_submitting &&
+      !_isCompressing;
 
   @override
   void initState() {
@@ -37,6 +42,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
   void dispose() {
     _captionController.dispose();
     _captionFocus.dispose();
+    VideoCompressHelper.clearCache();
     super.dispose();
   }
 
@@ -67,22 +73,46 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
           );
           if (file != null) {
             final cropped = await ImageCropHelper.crop(file);
-            if (cropped != null) picked.add(cropped);
+            picked.add(cropped ?? file);
           }
           break;
         case _PickAction.cameraVideo:
           final file = await _picker.pickVideo(
-              source: ImageSource.camera,
-              maxDuration: const Duration(seconds: 60));
+            source: ImageSource.camera,
+            maxDuration: const Duration(seconds: 60),
+          );
+          if (file != null) picked.add(file);
+          break;
+        case _PickAction.galleryVideo:
+          final file = await _picker.pickVideo(
+            source: ImageSource.gallery,
+            maxDuration: const Duration(seconds: 120),
+          );
           if (file != null) picked.add(file);
           break;
       }
       for (final file in picked) {
-        _media.add(await PickedImage.fromXFile(file));
+        final isVideo = file.name.toLowerCase().endsWith('.mp4') ||
+            file.name.toLowerCase().endsWith('.mov') ||
+            file.name.toLowerCase().endsWith('.m4v') ||
+            file.name.toLowerCase().endsWith('.webm');
+
+        if (isVideo) {
+          if (mounted) setState(() => _isCompressing = true);
+          try {
+            final compressed = await VideoCompressHelper.compressAndConvert(file);
+            _media.add(compressed);
+          } finally {
+            if (mounted) setState(() => _isCompressing = false);
+          }
+        } else {
+          _media.add(await PickedImage.fromXFile(file));
+        }
       }
       if (mounted) setState(() {});
     } catch (_) {
       if (mounted) {
+        setState(() => _isCompressing = false);
         AppDialog.showToast(context, context.tr('social.pick_failed'),
             isError: true);
       }
@@ -103,6 +133,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
         content: _captionController.text,
         media: _media,
       );
+      await VideoCompressHelper.clearCache();
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (_) {
@@ -111,6 +142,204 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
       AppDialog.showToast(context, context.tr('social.publish_failed'),
           isError: true);
     }
+  }
+
+  void _showPhotoSourceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('social.pick_photo_source'),
+                  style: AppFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF48BB78).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIcons.imageSquareFill,
+                      color: Color(0xFF48BB78),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    context.tr('social.choose_photo_gallery'),
+                    style: AppFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _handlePickAction(_PickAction.gallery);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4299E1).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIcons.cameraFill,
+                      color: Color(0xFF4299E1),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    context.tr('social.take_photo'),
+                    style: AppFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _handlePickAction(_PickAction.cameraPhoto);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVideoSourceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('social.pick_video_source'),
+                  style: AppFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFED8936).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIcons.videoCameraFill,
+                      color: Color(0xFFED8936),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    context.tr('social.record_camera_video'),
+                    style: AppFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _handlePickAction(_PickAction.cameraVideo);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4299E1).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIcons.filmStripFill,
+                      color: Color(0xFF4299E1),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    context.tr('social.choose_from_gallery'),
+                    style: AppFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _handlePickAction(_PickAction.galleryVideo);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildBottomAction({required IconData icon, required Color color, required VoidCallback onTap}) {
@@ -191,9 +420,11 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
             ),
           ],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
+            Column(
+              children: [
+                Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
@@ -334,7 +565,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
                     _buildBottomAction(
                       icon: PhosphorIcons.imageFill,
                       color: const Color(0xFF48BB78),
-                      onTap: () => _handlePickAction(_PickAction.gallery),
+                      onTap: _showPhotoSourceSheet,
                     ),
                     _buildBottomAction(
                       icon: PhosphorIcons.cameraFill,
@@ -344,7 +575,7 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
                     _buildBottomAction(
                       icon: PhosphorIcons.videoCameraFill,
                       color: const Color(0xFFED8936),
-                      onTap: () => _handlePickAction(_PickAction.cameraVideo),
+                      onTap: _showVideoSourceSheet,
                     ),
                   ],
                 ),
@@ -352,9 +583,59 @@ class _CreateSocialPostPageState extends State<CreateSocialPostPage> {
             ),
           ],
         ),
-      ),
-    );
+        if (_isCompressing)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.65),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF222228),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white24),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        context.tr('social.compressing_video'),
+                        style: AppFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  ),
+);
   }
 }
 
-enum _PickAction { gallery, cameraPhoto, cameraVideo }
+enum _PickAction { gallery, cameraPhoto, cameraVideo, galleryVideo }

@@ -24,6 +24,8 @@ import '../widgets/social_media_pager.dart';
 import '../widgets/social_media_view.dart';
 import 'create_social_post_page.dart';
 import 'tiktok_profile_page.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../home/presentation/screens/restaurant_detail_page.dart';
 
 /// Full-screen vertical social feed (For You from API).
 class SocialPage extends StatefulWidget {
@@ -311,20 +313,18 @@ class _SocialPageState extends State<SocialPage> {
 
   Widget _buildFeedSwitcher() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: _feedTab(
-            label: context.tr('social.for_you'),
-            selected: !_following,
-            onTap: () => _setFeed(false),
-          ),
+        _feedTab(
+          label: context.tr('social.for_you'),
+          selected: !_following,
+          onTap: () => _setFeed(false),
         ),
-        Expanded(
-          child: _feedTab(
-            label: context.tr('social.following'),
-            selected: _following,
-            onTap: () => _setFeed(true),
-          ),
+        const SizedBox(width: 6),
+        _feedTab(
+          label: context.tr('social.following'),
+          selected: _following,
+          onTap: () => _setFeed(true),
         ),
       ],
     );
@@ -340,24 +340,85 @@ class _SocialPageState extends State<SocialPage> {
       onDoubleTap: selected ? _refreshFeed : null,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            style: AppFonts.poppins(
-              color: selected ? Colors.white : Colors.white60,
-              fontSize: selected ? 17 : 15,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              shadows: const [
-                Shadow(
-                  color: Colors.black54,
-                  blurRadius: 8,
-                  offset: Offset(0, 1),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: AppFonts.poppins(
+                color: selected ? Colors.white : Colors.white60,
+                fontSize: selected ? 16.5 : 15,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 8,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              height: 2.5,
+              width: selected ? 22 : 0,
+              decoration: BoxDecoration(
+                gradient: selected ? AppColors.primaryGradient : null,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.6),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateButton() {
+    return GestureDetector(
+      onTap: _openCreate,
+      behavior: HitTestBehavior.opaque,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.38),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
+            ),
+            child: const Center(
+              child: Icon(
+                PhosphorIcons.plusBold,
+                size: 17,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -397,65 +458,31 @@ class _SocialPageState extends State<SocialPage> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: SizedBox(
                   height: 44,
-                  child: Row(
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          'assets/images/app_icon_small.png',
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildFeedSwitcher()),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: _openCreate,
-                        behavior: HitTestBehavior.opaque,
+                      // Left: App icon
+                      Positioned(
+                        left: 0,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.25),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    PhosphorIcons.plusBold,
-                                    size: 14,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    context.tr('social.create_post'),
-                                    style: AppFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/app_icon_small.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
                           ),
                         ),
+                      ),
+                      // Center: Centered tabs
+                      _buildFeedSwitcher(),
+                      // Right: Sleek frosted create button
+                      Positioned(
+                        right: 0,
+                        child: _buildCreateButton(),
                       ),
                     ],
                   ),
@@ -1186,6 +1213,122 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
     });
   }
 
+  Future<void> _sharePost() async {
+    AppHaptics.buttonTap();
+    final caption = widget.post.caption;
+    final link = 'https://api.mytogether.org/p/';
+    final shareText = caption.isNotEmpty
+        ? '\n\n'
+        : link;
+    try {
+      await Share.share(shareText);
+    } catch (_) {}
+  }
+
+  Widget _buildShopActionChip() {
+    if (widget.post.author.type != SocialAuthorType.shop ||
+        widget.post.author.id <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: () {
+          AppHaptics.buttonTap();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RestaurantDetailPage(
+                id: widget.post.author.id.toString(),
+                name: widget.post.author.displayName,
+                logoPath: widget.post.author.avatarUrl,
+              ),
+            ),
+          );
+        },
+        behavior: HitTestBehavior.opaque,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.52),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.28),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        PhosphorIcons.storefrontBold,
+                        size: 11,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      widget.post.author.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 1,
+                    height: 11,
+                    color: Colors.white24,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('social.visit_shop'),
+                    style: AppFonts.poppins(
+                      color: AppColors.primary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    PhosphorIcons.caretRightBold,
+                    size: 11,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _showMoreOptions() async {
     setState(() => _sheetOpen = true);
     await showModalBottomSheet<void>(
@@ -1219,6 +1362,15 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _toggleSave();
+                  },
+                ),
+                _MoreTile(
+                  icon: PhosphorIcons.shareFat,
+                  iconColor: Colors.white,
+                  label: context.tr('social.share'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _sharePost();
                   },
                 ),
                 if (_isOwnPost)
@@ -1531,11 +1683,47 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               top: false,
               child: Column(
                 children: [
-                  _CreatorAvatar(
-                    avatarUrl: widget.post.author.avatarUrl,
-                    authorName: widget.post.author.displayName,
-                    authorType: widget.post.author.type,
-                    onTap: _openCreatorProfile,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      _CreatorAvatar(
+                        avatarUrl: widget.post.author.avatarUrl,
+                        authorName: widget.post.author.displayName,
+                        authorType: widget.post.author.type,
+                        onTap: _openCreatorProfile,
+                      ),
+                      if (_canFollow && !_followingAuthor)
+                        Positioned(
+                          bottom: -6,
+                          child: GestureDetector(
+                            onTap: _followBusy ? null : _toggleFollow,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: AppColors.primaryGradient,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black45,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  PhosphorIcons.plusBold,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   _LikeRailButton(
@@ -1566,6 +1754,12 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
                   ),
                   const SizedBox(height: 14),
                   _RailAction(
+                    icon: PhosphorIcons.shareFatFill,
+                    label: context.tr('social.share'),
+                    onTap: _sharePost,
+                  ),
+                  const SizedBox(height: 14),
+                  _RailAction(
                     icon: PhosphorIcons.dotsThreeCircle,
                     label: context.tr('common.more'),
                     onTap: _showMoreOptions,
@@ -1583,6 +1777,7 @@ class _SocialFeedItemState extends State<_SocialFeedItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildShopActionChip(),
                   Row(
                     children: [
                       Flexible(

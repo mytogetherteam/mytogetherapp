@@ -324,14 +324,39 @@ class UserLocationRepository extends ChangeNotifier {
 
     final locations = await getRawLocations(forceRefresh: forceRefresh);
     if (locations.isEmpty) return null;
+    UserLocationModel loc;
     try {
-      final loc = locations.firstWhere((loc) => loc.isPrimary);
-      _activeLocation = loc;
-      return loc;
+      loc = locations.firstWhere((l) => l.isPrimary);
     } catch (_) {
-      final loc = locations.first;
-      _activeLocation = loc;
-      return loc;
+      loc = locations.first;
     }
+
+    // Auto-heal old locations that have coordinates but missing or placeholder address
+    if (loc.streetAddress == null &&
+        loc.latitude != null &&
+        loc.longitude != null &&
+        loc.latitude != 0 &&
+        loc.longitude != 0) {
+      try {
+        final resolved = await LocationSearchService.instance.reverseGeocode(
+          loc.latitude!,
+          loc.longitude!,
+        );
+        if (resolved != null && resolved.displayName.trim().isNotEmpty) {
+          final updated = loc.copyWith(
+            address: resolved.displayName.trim(),
+            buildingName: loc.buildingName ??
+                (resolved.name.trim().isNotEmpty ? resolved.name.trim() : null),
+          );
+          if (loc.id > 0) {
+            updateLocation(updated).catchError((_) => updated);
+          }
+          loc = updated;
+        }
+      } catch (_) {}
+    }
+
+    _activeLocation = loc;
+    return loc;
   }
 }

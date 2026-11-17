@@ -9,7 +9,6 @@ import 'features/main_navigation/presentation/screens/main_navigation_screen.dar
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'core/utils/lifecycle_observer.dart';
 import 'package:upgrader/upgrader.dart';
-import 'package:mytogetherapp/features/chat/presentation/widgets/floating_chat_head.dart';
 import 'package:mytogetherapp/features/call/presentation/widgets/floating_call_banner.dart';
 
 class App extends StatefulWidget {
@@ -78,20 +77,6 @@ class _AppState extends State<App> {
                       left: 0,
                       right: 0,
                       child: FloatingCallBanner(),
-                    ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: FloatingChatHead.isHiddenNotifier,
-                      builder: (context, isHidden, child) {
-                        return IgnorePointer(
-                          ignoring: isHidden,
-                          child: AnimatedOpacity(
-                            opacity: isHidden ? 0.0 : 1.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: const FloatingChatHead(),
                     ),
                   ],
                 ),

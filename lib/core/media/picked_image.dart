@@ -10,11 +10,15 @@ class PickedImage {
     required this.bytes,
     required this.filename,
     required this.mimeType,
+    this.thumbnailBytes,
+    this.duration,
   });
 
   final Uint8List bytes;
   final String filename;
   final String mimeType;
+  final Uint8List? thumbnailBytes;
+  final int? duration;
 
   double get sizeInMb => bytes.length / (1024 * 1024);
 

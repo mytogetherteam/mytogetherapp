@@ -598,6 +598,7 @@ const Map<String, String> kThTranslations = {
   'order_status.food_total': 'รวมอาหาร',
   'order_status.discount': 'ส่วนลด',
   'order_status.transaction_discount': 'ส่วนลดรายการ',
+  'order_status.view_order': 'ดูคำสั่งซื้อ',
   'coupon.sheet_title': 'คูปองที่ใช้ได้',
   'coupon.sheet_subtitle': 'แตะตั๋วเพื่อใช้กับคำสั่งซื้อนี้',
   'coupon.skip': 'ไว้ภายหลัง',
@@ -718,6 +719,7 @@ const Map<String, String> kThTranslations = {
   'order.status.delivered': 'จัดส่งแล้ว',
   'order.status.canceled': 'ยกเลิกแล้ว',
   'order_tracking.awaiting_confirmation': 'รอร้านอาหารยืนยัน',
+  'order_tracking.skip': 'ข้าม',
   'order_tracking.calculating': 'กำลังคำนวณ',
   'order_tracking.cancel_confirm':
       'คุณแน่ใจหรือไม่ว่าต้องการยกเลิกคำสั่งซื้อนี้?',
@@ -786,6 +788,9 @@ const Map<String, String> kThTranslations = {
   'order_cancel_user.message':
       'คำสั่งซื้อของคุณถูกยกเลิกแล้ว เราขออภัยในความไม่สะดวกที่อาจเกิดขึ้น และหวังว่าจะได้ให้บริการคุณอีกครั้งเร็วๆ นี้',
   'order_cancel_user.action': 'ดูคำสั่งซื้อที่ถูกยกเลิก',
+  'order_cancel_system.title': 'คำสั่งซื้อถูกยกเลิกโดยระบบ',
+  'order_cancel_system.message':
+      'คำสั่งซื้อของคุณถูกยกเลิกโดยระบบโดยอัตโนมัติ เราขออภัยในความไม่สะดวก',
   'order_complete.arrived_at': 'ถึงเมื่อ: {time}',
   'order_complete.done': 'เสร็จสิ้น',
   'order_complete.items_placeholder': 'รายการที่สั่งจะแสดงที่นี่',
@@ -804,6 +809,9 @@ const Map<String, String> kThTranslations = {
   'payment.cod_max_limit': 'เก็บเงินปลายทางใช้ได้สูงสุด ฿1,500 กรุณาเลือก PromptPay',
   'payment.cod_otp_desc': 'คุณเข้าสู่ระบบด้วย Google กรุณายืนยันหมายเลขโทรศัพท์ของคุณด้วย OTP สำหรับการสั่งซื้อแบบเก็บเงินปลายทาง',
   'payment.cod_verify_phone': 'ยืนยันหมายเลขโทรศัพท์',
+  'payment.order_phone_title': 'ยืนยันเบอร์โทรศัพท์สำหรับติดต่อ',
+  'payment.order_phone_required_desc': 'กรุณายืนยันเบอร์โทรศัพท์ด้วย OTP เพื่อให้ไรเดอร์และร้านค้าสามารถติดต่อคุณได้',
+  'payment.phone_required_to_order': 'จำเป็นต้องยืนยันเบอร์โทรศัพท์เพื่อทำการสั่งซื้อ',
   'payment.cod_otp_enter': 'กรอกรหัส OTP',
   'payment.cod_otp_sent': 'กรอกรหัส OTP 6 หลักที่ส่งไปยัง {phone}',
   'payment.cod_otp_full': 'กรุณากรอกรหัส OTP ให้ครบ 6 หลัก',

@@ -34,6 +34,7 @@ import '../../../../core/presentation/widgets/notification_bell.dart';
 import '../widgets/trending_news_section.dart';
 import '../../../../core/presentation/widgets/search_box_trigger.dart';
 import '../../data/new_user_free_delivery.dart';
+import '../../data/home_badge_prefs.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -64,6 +65,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Timer? _titleTimer;
   final ValueNotifier<bool> _showThemeNameInAppBar = ValueNotifier<bool>(false);
   bool _newUserFreeApplied = NewUserFreeDeliveryOffer.instance.applies;
+  bool _showOtherServicesBadge = false;
+  bool _showCurrencyBadge = false;
+  bool _showVisaBadge = false;
 
   @override
   void initState() {
@@ -87,6 +91,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _startTimers();
     }
     NavigationController.instance.currentIndex.addListener(_onTabVisibilityChanged);
+
+    _loadBadgeVisibility();
 
     NotificationRepository().getUnreadCount();
     AnnouncementRepository().getUnreadCount();
@@ -152,6 +158,60 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _newUserFreeApplied = next;
     RestaurantRepository.instance.clearCache();
     setState(() => _refreshKey++);
+  }
+
+  Future<void> _loadBadgeVisibility() async {
+    try {
+      final shouldShow = await HomeBadgePrefs.shouldShowHomeBadges();
+      if (!shouldShow) {
+        if (mounted && (_showOtherServicesBadge || _showCurrencyBadge || _showVisaBadge)) {
+          setState(() {
+            _showOtherServicesBadge = false;
+            _showCurrencyBadge = false;
+            _showVisaBadge = false;
+          });
+        }
+        return;
+      }
+
+      final visitedOther = await HomeBadgePrefs.hasVisitedOtherServices();
+      final visitedCurrency = await HomeBadgePrefs.hasVisitedCurrency();
+      final visitedVisa = await HomeBadgePrefs.hasVisitedVisa();
+
+      if (mounted) {
+        setState(() {
+          _showOtherServicesBadge = !visitedOther;
+          _showCurrencyBadge = !visitedCurrency;
+          _showVisaBadge = !visitedVisa;
+        });
+      }
+
+      // Mark badges as seen so returning users will not see them on subsequent sessions
+      await HomeBadgePrefs.markHomeBadgesSeen();
+    } catch (e) {
+      if (kDebugMode) debugPrint('home_page.dart: badge load error: $e');
+    }
+  }
+
+  void _onOtherServicesTapped() {
+    if (_showOtherServicesBadge) {
+      setState(() => _showOtherServicesBadge = false);
+      HomeBadgePrefs.markVisitedOtherServices();
+    }
+  }
+
+  void _onCurrencyTapped() {
+    if (_showCurrencyBadge) {
+      setState(() => _showCurrencyBadge = false);
+      HomeBadgePrefs.markVisitedCurrency();
+    }
+  }
+
+  void _onVisaTapped() {
+    if (_showVisaBadge) {
+      setState(() => _showVisaBadge = false);
+      HomeBadgePrefs.markVisitedVisa();
+    }
   }
 
   void _onScrollToTopRequested() {
@@ -662,23 +722,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_other_services'),
                                     assetPath:
                                         'assets/images/services/thai_law_3d.png',
-                                    badgeText: 'NEW',
-                                    isAnimatedBadge: true,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const OtherServicesPage(),
-                                      ),
-                                    ),
+                                    badgeText: _showOtherServicesBadge ? 'NEW' : null,
+                                    isAnimatedBadge: _showOtherServicesBadge,
+                                    onTap: () {
+                                      _onOtherServicesTapped();
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const OtherServicesPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_currency'),
                                     assetPath:
                                         'assets/images/services/exchange_3d.png',
-                                    badgeText: 'UPDATED',
-                                    isAnimatedBadge: true,
+                                    badgeText: _showCurrencyBadge ? 'UPDATED' : null,
+                                    isAnimatedBadge: _showCurrencyBadge,
                                     onTap: () {
+                                      _onCurrencyTapped();
                                       if (GuestAuthGuard.isGuest) {
                                         Navigator.push(
                                           context,
@@ -702,14 +766,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     title: context.tr('home.category_visa'),
                                     assetPath:
                                         'assets/images/services/visa_3d.png',
-                                    badgeText: 'UPDATED',
-                                    isAnimatedBadge: true,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const VisaPage(),
-                                      ),
-                                    ),
+                                    badgeText: _showVisaBadge ? 'UPDATED' : null,
+                                    isAnimatedBadge: _showVisaBadge,
+                                    onTap: () {
+                                      _onVisaTapped();
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const VisaPage(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   CategoryCard(
                                     title: context.tr('home.category_places'),
